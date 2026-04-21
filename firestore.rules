@@ -1,0 +1,35 @@
+rules_version = '2';
+// Regras de exemplo para o Firestore — ajuste no console do Firebase.
+// Admin: apenas quem tiver email == kingoversized@gmail.com pode escrever em /products.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == "kingoversized@gmail.com";
+    }
+
+    // Produtos — leitura pública; escrita apenas do admin
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Usuários — cada um lê/escreve seu próprio doc
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // Pedidos — o usuário cria/lê os próprios; admin vê tudo
+    match /orders/{orderId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
