@@ -81,7 +81,7 @@ export default function Products() {
                   'rounded-full border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.25em] transition',
                   category === c.id
                     ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
-                    : 'border-white/10 text-king-silver hover:border-king-red hover:text-king-bone'
+                    : 'border-white/10 text-king-silver hover:border-king-red hover:text-king-fg'
                 )}
               >
                 {c.label}
@@ -117,7 +117,7 @@ export default function Products() {
                 'h-9 min-w-[38px] rounded-full border px-2 font-mono text-[11px] uppercase tracking-[0.2em] transition',
                 size === s
                   ? 'border-king-red bg-king-red text-king-bone'
-                  : 'border-white/10 text-king-silver hover:border-king-red hover:text-king-bone'
+                  : 'border-white/10 text-king-silver hover:border-king-red hover:text-king-fg'
               )}
             >
               {s === 'all' ? 'Todos' : s}
@@ -131,7 +131,7 @@ export default function Products() {
           </span>
           <button
             onClick={() => setMobileFilters(true)}
-            className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.3em] text-king-bone"
+            className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.3em] text-king-fg"
           >
             <HiOutlineAdjustments /> Filtros
           </button>
@@ -153,7 +153,7 @@ export default function Products() {
 
         {!loading && filtered.length === 0 && (
           <div className="flex flex-col items-center gap-4 py-28 text-center">
-            <p className="heading-display text-2xl text-king-bone">
+            <p className="heading-display text-2xl text-king-fg">
               {products.length === 0 ? 'Coleção ainda vazia' : 'Nenhuma peça por aqui'}
             </p>
             <p className="max-w-md font-serif italic text-king-silver/70">
@@ -196,7 +196,7 @@ export default function Products() {
               className="fixed inset-x-0 bottom-0 z-[81] rounded-t-2xl bg-king-jet p-6"
             >
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="heading-display text-lg text-king-bone">Filtros</h3>
+                <h3 className="heading-display text-lg text-king-fg">Filtros</h3>
                 <button onClick={() => setMobileFilters(false)}>
                   <HiOutlineX className="text-xl" />
                 </button>

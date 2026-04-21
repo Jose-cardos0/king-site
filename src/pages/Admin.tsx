@@ -146,8 +146,8 @@ export default function Admin() {
             ✝ Painel Real
           </span>
           <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-8">
-            <KingLogo variant="white" className="h-12 w-auto max-w-[220px] sm:h-16" />
-            <h1 className="heading-display text-4xl text-king-bone md:text-6xl">
+            <KingLogo variant="auto" className="h-12 w-auto max-w-[220px] sm:h-16" />
+            <h1 className="heading-display text-4xl text-king-fg md:text-6xl">
               <span className="text-gradient-red">ADMIN</span>
             </h1>
           </div>
@@ -190,7 +190,7 @@ export default function Admin() {
                 <button
                   type="button"
                   onClick={onImportDemoProducts}
-                  className="border border-white/15 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver transition hover:border-king-red hover:text-king-bone"
+                  className="border border-white/15 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver transition hover:border-king-red hover:text-king-fg"
                 >
                   Importar demonstrativos
                 </button>
@@ -223,7 +223,7 @@ export default function Admin() {
                             <img src={p.images[0]} alt="" className="h-full w-full object-cover" />
                           </div>
                           <div>
-                            <p className="heading-display text-sm text-king-bone">{p.name}</p>
+                            <p className="heading-display text-sm text-king-fg">{p.name}</p>
                             <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/60 md:hidden">
                               {p.category}
                             </p>
@@ -233,7 +233,7 @@ export default function Admin() {
                       <td className="p-4 hidden md:table-cell font-mono text-[11px] uppercase tracking-[0.25em] text-king-silver">
                         {p.category}
                       </td>
-                      <td className="p-4 font-display text-king-bone">
+                      <td className="p-4 font-display text-king-fg">
                         {formatBRL(p.price)}
                       </td>
                       <td className="p-4 hidden md:table-cell font-mono text-sm text-king-silver">
@@ -243,7 +243,7 @@ export default function Admin() {
                         <div className="inline-flex gap-2">
                           <button
                             onClick={() => setModal({ mode: 'edit', product: p })}
-                            className="flex h-9 w-9 items-center justify-center border border-white/10 text-king-silver hover:border-king-red hover:text-king-bone"
+                            className="flex h-9 w-9 items-center justify-center border border-white/10 text-king-silver hover:border-king-red hover:text-king-fg"
                           >
                             <HiOutlinePencil />
                           </button>
@@ -286,7 +286,7 @@ export default function Admin() {
                   <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver">
                     #{o.id.slice(0, 10)}
                   </p>
-                  <p className="heading-display text-base text-king-bone">
+                  <p className="heading-display text-base text-king-fg">
                     {o.shipping.fullName}
                   </p>
                   <p className="font-serif italic text-xs text-king-silver/70">
@@ -652,7 +652,7 @@ function ProductModal({
         <header className="shrink-0 border-b border-neutral-900 bg-king-black/40 px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h3 className="heading-display text-2xl text-king-bone sm:text-3xl">
+              <h3 className="heading-display text-2xl text-king-fg sm:text-3xl">
                 {mode === 'create' ? 'Novo produto' : 'Editar produto'}
               </h3>
               <p className="mt-1.5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.18em] text-king-silver/80 sm:text-[11px]">
@@ -664,7 +664,7 @@ function ProductModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 items-center justify-center border border-neutral-800 text-king-silver transition hover:border-king-red hover:text-king-bone"
+              className="flex h-10 w-10 shrink-0 items-center justify-center border border-neutral-800 text-king-silver transition hover:border-king-red hover:text-king-fg"
               aria-label="Fechar"
             >
               <HiOutlineX className="text-lg" />
@@ -710,7 +710,7 @@ function ProductModal({
                       <span
                         className={cn(
                           'mt-2 max-w-[6rem] text-center font-mono text-[9px] uppercase leading-tight tracking-[0.14em] sm:max-w-none sm:text-[10px]',
-                          active && 'text-king-bone',
+                          active && 'text-king-fg',
                           done && !active && 'text-king-silver/85',
                           !done && !active && 'text-king-silver/38'
                         )}
@@ -862,7 +862,7 @@ function ProductModal({
                   <button
                     type="button"
                     onClick={addExternalImageUrl}
-                    className="shrink-0 border border-neutral-800 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-king-silver transition hover:border-king-red hover:text-king-bone"
+                    className="shrink-0 border border-neutral-800 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-king-silver transition hover:border-king-red hover:text-king-fg"
                   >
                     Adicionar URL
                   </button>
@@ -939,7 +939,7 @@ function ProductModal({
                       <button
                         type="button"
                         onClick={() => setBackPick(new Set(STAMPS.map((s) => s.id)))}
-                        className="font-mono text-[9px] uppercase tracking-[0.2em] text-king-silver underline-offset-2 hover:text-king-bone hover:underline"
+                        className="font-mono text-[9px] uppercase tracking-[0.2em] text-king-silver underline-offset-2 hover:text-king-fg hover:underline"
                       >
                         Marcar todas
                       </button>
@@ -1060,7 +1060,7 @@ function ProductModal({
                             />
                           </div>
                           <div className="border-t border-white/5 px-2 py-1.5">
-                            <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-king-bone">
+                            <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-king-fg">
                               {s.name}
                             </span>
                           </div>
@@ -1106,55 +1106,55 @@ function ProductModal({
                   <dl className="grid gap-4 font-mono text-[11px] uppercase tracking-[0.16em] text-king-silver sm:grid-cols-2">
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
                       <dt className="text-king-silver/55">Nome</dt>
-                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-bone">
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {form.name?.trim() || '—'}
                       </dd>
                     </div>
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
                       <dt className="text-king-silver/55">Preço</dt>
-                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-bone">
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {formatBRL(form.price)}
                       </dd>
                     </div>
                     {form.oldPrice != null && form.oldPrice > 0 && (
                       <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
                         <dt className="text-king-silver/55">Preço antigo</dt>
-                        <dd className="mt-1 text-sm normal-case tracking-normal text-king-bone">
+                        <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                           {formatBRL(form.oldPrice)}
                         </dd>
                       </div>
                     )}
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
                       <dt className="text-king-silver/55">Estoque</dt>
-                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-bone">{form.stock}</dd>
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">{form.stock}</dd>
                     </div>
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
                       <dt className="text-king-silver/55">Categoria</dt>
-                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-bone">
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {PRODUCT_CATEGORY_LABELS[form.category]}
                       </dd>
                     </div>
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
                       <dt className="text-king-silver/55">Tamanhos</dt>
-                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-bone">
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {form.sizes.length ? form.sizes.join(', ') : '—'}
                       </dd>
                     </div>
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
                       <dt className="text-king-silver/55">Imagens</dt>
-                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-bone">
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {galleryCount} na galeria
                       </dd>
                     </div>
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
                       <dt className="text-king-silver/55">Estampas · costas</dt>
-                      <dd className="mt-1 font-serif text-sm normal-case tracking-normal text-king-bone">
+                      <dd className="mt-1 font-serif text-sm normal-case tracking-normal text-king-fg">
                         {backSummaryText}
                       </dd>
                     </div>
                     <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
                       <dt className="text-king-silver/55">Estampas · frente</dt>
-                      <dd className="mt-1 font-serif text-sm normal-case tracking-normal text-king-bone">
+                      <dd className="mt-1 font-serif text-sm normal-case tracking-normal text-king-fg">
                         {frontSummaryText}
                       </dd>
                     </div>
@@ -1178,7 +1178,7 @@ function ProductModal({
               <button
                 type="button"
                 onClick={goPrev}
-                className="border border-neutral-800 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver transition hover:border-king-bone hover:text-king-bone"
+                className="border border-neutral-800 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver transition hover:border-king-bone hover:text-king-fg"
               >
                 Anterior
               </button>

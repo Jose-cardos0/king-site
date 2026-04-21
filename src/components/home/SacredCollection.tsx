@@ -65,7 +65,7 @@ export default function SacredCollection() {
             <span className="h-[1px] w-8 bg-king-red" />
             Cápsula Sagrada 2026
           </span>
-          <h2 className="mt-5 heading-display text-4xl md:text-6xl leading-[0.95] text-king-bone">
+          <h2 className="mt-5 heading-display text-4xl md:text-6xl leading-[0.95] text-king-fg">
             <span className="block">VIA</span>
             <span className="block text-gradient-red text-glow">CRUCIS</span>
             <span className="block font-serif italic text-xl md:text-3xl text-king-silver/80 mt-3 tracking-normal normal-case">

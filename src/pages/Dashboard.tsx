@@ -50,7 +50,7 @@ export default function Dashboard() {
             <span className="font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
               Sua corte
             </span>
-            <h1 className="mt-2 heading-display text-5xl md:text-7xl text-king-bone">
+            <h1 className="mt-2 heading-display text-5xl md:text-7xl text-king-fg">
               OLÁ, {(user?.displayName?.split(' ')[0] ?? 'REI').toUpperCase()}
             </h1>
             <p className="mt-3 font-serif italic text-king-silver/80">
@@ -87,7 +87,7 @@ export default function Dashboard() {
         </div>
 
         <div className="mt-14">
-          <h2 className="mb-6 heading-display text-2xl text-king-bone">
+          <h2 className="mb-6 heading-display text-2xl text-king-fg">
             Seus <span className="text-gradient-red">Pedidos</span>
           </h2>
 
@@ -97,7 +97,7 @@ export default function Dashboard() {
             </div>
           ) : orders.length === 0 ? (
             <div className="glass flex flex-col items-center gap-4 p-14 text-center">
-              <p className="heading-display text-xl text-king-bone">Nenhum pedido ainda</p>
+              <p className="heading-display text-xl text-king-fg">Nenhum pedido ainda</p>
               <p className="font-serif italic text-king-silver/70">
                 Sua primeira peça real te espera na coleção.
               </p>
@@ -133,7 +133,7 @@ export default function Dashboard() {
                         <span className={cn('font-mono text-[11px] uppercase tracking-[0.25em]', st.color)}>
                           ● {st.label}
                         </span>
-                        <span className="heading-display text-lg text-king-bone">
+                        <span className="heading-display text-lg text-king-fg">
                           {formatBRL(order.total)}
                         </span>
                       </div>
@@ -157,7 +157,7 @@ export default function Dashboard() {
                               <span
                                 className={cn(
                                   'hidden text-[10px] font-mono uppercase tracking-[0.25em] md:inline',
-                                  idx + 1 <= st.step ? 'text-king-bone' : 'text-king-silver/50'
+                                  idx + 1 <= st.step ? 'text-king-fg' : 'text-king-silver/50'
                                 )}
                               >
                                 {label}
@@ -182,7 +182,7 @@ export default function Dashboard() {
                               <img src={item.image} alt="" className="h-full w-full object-cover" />
                             </div>
                             <div className="min-w-0">
-                              <p className="heading-display truncate text-xs text-king-bone">
+                              <p className="heading-display truncate text-xs text-king-fg">
                                 {item.name}
                               </p>
                               <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/70">
@@ -238,7 +238,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver">
         {label}
       </p>
-      <p className="mt-2 heading-display text-3xl text-king-bone">{value}</p>
+      <p className="mt-2 heading-display text-3xl text-king-fg">{value}</p>
     </motion.div>
   );
 }

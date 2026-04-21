@@ -38,7 +38,7 @@ export default function Checkout() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-king-black">
         <div className="flex flex-col items-center gap-4 text-center">
-          <h2 className="heading-display text-3xl text-king-bone">Sacola vazia</h2>
+          <h2 className="heading-display text-3xl text-king-fg">Sacola vazia</h2>
           <button
             onClick={() => navigate('/produtos')}
             className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-red"
@@ -102,7 +102,7 @@ export default function Checkout() {
           <span className="font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
             Finalizar compra
           </span>
-          <h1 className="mt-2 heading-display text-5xl md:text-6xl text-king-bone">
+          <h1 className="mt-2 heading-display text-5xl md:text-6xl text-king-fg">
             CHECKOUT
           </h1>
         </div>
@@ -136,7 +136,7 @@ export default function Checkout() {
           >
             {step === 1 && (
               <>
-                <h3 className="heading-display mb-6 text-xl text-king-bone">
+                <h3 className="heading-display mb-6 text-xl text-king-fg">
                   Endereço de entrega
                 </h3>
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -161,7 +161,7 @@ export default function Checkout() {
 
             {step === 2 && (
               <>
-                <h3 className="heading-display mb-6 text-xl text-king-bone">
+                <h3 className="heading-display mb-6 text-xl text-king-fg">
                   Forma de pagamento
                 </h3>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -182,7 +182,7 @@ export default function Checkout() {
                           : 'border-white/10 hover:border-king-red'
                       )}
                     >
-                      <span className="heading-display text-sm tracking-[0.25em] text-king-bone">
+                      <span className="heading-display text-sm tracking-[0.25em] text-king-fg">
                         {p.label}
                       </span>
                       <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/70">
@@ -226,7 +226,7 @@ export default function Checkout() {
           </motion.div>
 
           <aside className="glass h-fit p-6 lg:sticky lg:top-28">
-            <h3 className="heading-display mb-5 text-lg tracking-[0.25em] text-king-bone">
+            <h3 className="heading-display mb-5 text-lg tracking-[0.25em] text-king-fg">
               SEU PEDIDO
             </h3>
             <ul className="mb-5 space-y-4 max-h-64 overflow-y-auto pr-2">
@@ -239,7 +239,7 @@ export default function Checkout() {
                     <img src={i.image} alt="" className="h-full w-full object-cover" />
                   </div>
                   <div className="flex flex-1 flex-col">
-                    <span className="heading-display text-xs text-king-bone">
+                    <span className="heading-display text-xs text-king-fg">
                       {i.name}
                     </span>
                     <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/70">
@@ -255,7 +255,7 @@ export default function Checkout() {
                         Frente: {i.stampFront.name}
                       </span>
                     )}
-                    <span className="mt-auto font-display text-xs text-king-bone">
+                    <span className="mt-auto font-display text-xs text-king-fg">
                       {formatBRL(i.price * i.quantity)}
                     </span>
                   </div>
@@ -276,7 +276,7 @@ export default function Checkout() {
               <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
                 Total
               </span>
-              <span className="heading-display text-3xl text-king-bone">
+              <span className="heading-display text-3xl text-king-fg">
                 {formatBRL(final)}
               </span>
             </div>

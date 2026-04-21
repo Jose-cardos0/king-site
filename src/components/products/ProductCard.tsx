@@ -77,7 +77,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
               <HiOutlineShoppingCart className="text-lg md:text-base" />
               <span className="hidden md:inline">Add Rápido</span>
             </button>
-            <button className="flex h-11 w-11 items-center justify-center bg-king-black/70 text-king-bone backdrop-blur-sm transition hover:bg-king-black">
+            <button className="flex h-11 w-11 items-center justify-center bg-king-black/70 text-king-fg backdrop-blur-sm transition hover:bg-king-black">
               <HiOutlineEye />
             </button>
           </div>
@@ -90,7 +90,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
             <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver/70">
               {product.category.replace('-', ' ')}
             </p>
-            <h3 className="mt-1 heading-display text-base text-king-bone transition-colors group-hover:text-king-glow">
+            <h3 className="mt-1 heading-display text-base text-king-fg transition-colors group-hover:text-king-glow">
               {product.name}
             </h3>
           </div>
@@ -100,7 +100,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
                 {formatBRL(product.oldPrice)}
               </p>
             )}
-            <p className="font-display text-sm text-king-bone">
+            <p className="font-display text-sm text-king-fg">
               {formatBRL(product.price)}
             </p>
           </div>

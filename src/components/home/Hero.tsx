@@ -31,7 +31,7 @@ export default function Hero() {
           <span className="h-[1px] w-8 bg-king-red" />
         </motion.div>
 
-        <h1 className="heading-display relative z-10 text-center text-[clamp(3.5rem,13vw,12rem)] font-bold leading-[0.85] text-king-bone">
+        <h1 className="heading-display relative z-10 text-center text-[clamp(3.5rem,13vw,12rem)] font-bold leading-[0.85] text-king-fg">
           <motion.span
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}

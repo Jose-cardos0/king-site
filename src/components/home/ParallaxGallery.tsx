@@ -2,7 +2,8 @@ import { Fragment, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { logoBordo, logoBranco } from '@/assets/logos';
+import { logoBordo, logoBranco, logoPreto } from '@/assets/logos';
+import { useThemeStore } from '@/store/useThemeStore';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -29,6 +30,10 @@ const MARQUEE_LOGO_PAIRS = 14;
 
 /** Letreiro em diagonal (~5°), full bleed: marquee sem recorte vertical; camada absoluta acima do bloco Lookbook. */
 function ReiEmMovimentoMarquee() {
+  const theme = useThemeStore((s) => s.theme);
+  /** No escuro: branco; no claro: preto — legível sobre o fundo creme do letreiro. */
+  const logoMarqueePrimario = theme === 'dark' ? logoBranco : logoPreto;
+
   const oneStrip = (halfKey: number) => (
     <div
       key={halfKey}
@@ -37,7 +42,7 @@ function ReiEmMovimentoMarquee() {
       {Array.from({ length: MARQUEE_LOGO_PAIRS }).map((_, i) => (
         <Fragment key={`${halfKey}-${i}`}>
           <img
-            src={logoBranco}
+            src={logoMarqueePrimario}
             alt=""
             draggable={false}
             className="h-14 w-auto shrink-0 select-none opacity-[0.42] md:h-16 md:opacity-50 lg:h-20 xl:h-24"
@@ -127,7 +132,7 @@ export default function ParallaxGallery() {
           <span className="font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
             Lookbook
           </span>
-          <h2 className="heading-display text-4xl md:text-7xl text-king-bone text-glow">
+          <h2 className="heading-display text-4xl md:text-7xl text-gradient-red">
             REI EM MOVIMENTO
           </h2>
         </motion.div>
@@ -142,7 +147,7 @@ export default function ParallaxGallery() {
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-king-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] text-king-bone">
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] text-king-fg">
                 <span>{it.label}</span>
                 <span className="text-king-red">0{i + 1}</span>
               </div>

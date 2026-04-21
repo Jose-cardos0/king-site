@@ -28,7 +28,7 @@ export default function Cart() {
           <span className="font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
             Seu reino
           </span>
-          <h1 className="heading-display text-5xl md:text-7xl text-king-bone">
+          <h1 className="heading-display text-5xl md:text-7xl text-king-fg">
             SACOLA <span className="text-gradient-red">REAL</span>
           </h1>
         </div>
@@ -40,7 +40,7 @@ export default function Cart() {
             className="flex flex-col items-center gap-5 py-28 text-center"
           >
             <KingLogo variant="bordo" className="h-24 w-auto opacity-35 sm:h-28" />
-            <h2 className="heading-display text-2xl text-king-bone">Sua sacola está vazia</h2>
+            <h2 className="heading-display text-2xl text-king-fg">Sua sacola está vazia</h2>
             <p className="max-w-md font-serif italic text-king-silver/70">
               Um rei não anda sem suas vestes. Vá até a coleção e encontre a peça que te pertence.
             </p>
@@ -102,7 +102,7 @@ export default function Cart() {
                       <div>
                         <Link
                           to={`/produtos/${item.productId}`}
-                          className="heading-display text-xl text-king-bone transition hover:text-king-glow"
+                          className="heading-display text-xl text-king-fg transition hover:text-king-glow"
                         >
                           {item.name}
                         </Link>
@@ -136,7 +136,7 @@ export default function Cart() {
                           >
                             <HiOutlineMinus className="mx-auto text-sm" />
                           </button>
-                          <span className="min-w-[40px] text-center font-display text-sm text-king-bone">
+                          <span className="min-w-[40px] text-center font-display text-sm text-king-fg">
                             {item.quantity}
                           </span>
                           <button
@@ -155,7 +155,7 @@ export default function Cart() {
                           </button>
                         </div>
                         <div className="flex items-center gap-6">
-                          <p className="heading-display text-xl text-king-bone">
+                          <p className="heading-display text-xl text-king-fg">
                             {formatBRL(item.price * item.quantity)}
                           </p>
                           <button
@@ -197,7 +197,7 @@ export default function Cart() {
               transition={{ delay: 0.2 }}
               className="glass h-fit p-6 lg:sticky lg:top-28"
             >
-              <h3 className="heading-display mb-5 text-lg tracking-[0.25em] text-king-bone">
+              <h3 className="heading-display mb-5 text-lg tracking-[0.25em] text-king-fg">
                 RESUMO
               </h3>
               <div className="space-y-3 border-b border-white/10 pb-5 text-sm">
@@ -219,7 +219,7 @@ export default function Cart() {
                 <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
                   Total
                 </span>
-                <span className="heading-display text-3xl text-king-bone">
+                <span className="heading-display text-3xl text-king-fg">
                   {formatBRL(finalTotal)}
                 </span>
               </div>

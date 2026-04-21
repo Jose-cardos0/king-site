@@ -99,7 +99,7 @@ export default function Login() {
       <button
         onClick={loginGoogle}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-3 border border-white/15 bg-white/5 py-4 font-mono text-[11px] uppercase tracking-[0.25em] text-king-bone transition hover:border-king-red hover:bg-white/10"
+        className="flex w-full items-center justify-center gap-3 border border-white/15 bg-white/5 py-4 font-mono text-[11px] uppercase tracking-[0.25em] text-king-fg transition hover:border-king-red hover:bg-white/10"
       >
         <FcGoogle className="text-xl" />
         Continuar com Google
@@ -143,7 +143,7 @@ export function AuthLayout({
           <div className="mb-5 flex justify-center">
             <KingLogo variant="white" className="h-12 w-auto sm:h-14" />
           </div>
-          <h1 className="heading-display text-3xl text-king-bone">{title}</h1>
+          <h1 className="heading-display text-3xl text-king-fg">{title}</h1>
           <p className="mt-2 font-serif italic text-sm text-king-silver/70">
             {subtitle}
           </p>

@@ -104,7 +104,7 @@ export default function Register() {
       <button
         onClick={registerGoogle}
         disabled={loading}
-        className="flex w-full items-center justify-center gap-3 border border-white/15 bg-white/5 py-4 font-mono text-[11px] uppercase tracking-[0.25em] text-king-bone transition hover:border-king-red hover:bg-white/10"
+        className="flex w-full items-center justify-center gap-3 border border-white/15 bg-white/5 py-4 font-mono text-[11px] uppercase tracking-[0.25em] text-king-fg transition hover:border-king-red hover:bg-white/10"
       >
         <FcGoogle className="text-xl" />
         Cadastrar com Google

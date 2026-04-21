@@ -49,7 +49,7 @@ export default function MeasureGuideModal({ open, onClose }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-0 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-king-black/80 text-king-bone backdrop-blur-sm transition hover:border-king-red hover:text-king-red md:-right-2 md:-top-2"
+              className="absolute right-0 top-0 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-king-black/80 text-king-fg backdrop-blur-sm transition hover:border-king-red hover:text-king-red md:-right-2 md:-top-2"
               aria-label="Fechar guia de medidas"
             >
               <HiOutlineX className="text-xl" />

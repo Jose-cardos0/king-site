@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaInstagram, FaTiktok, FaWhatsapp, FaYoutube } from 'react-icons/fa';
 import { openWhatsApp, buildSupportMessage } from '@/utils/whatsapp';
+import { useThemeStore } from '@/store/useThemeStore';
 import KingLogo from '@/components/ui/KingLogo';
 import MeasureGuideModal from '@/components/products/MeasureGuideModal';
 
 export default function Footer() {
   const [measureGuideOpen, setMeasureGuideOpen] = useState(false);
+  const theme = useThemeStore((s) => s.theme);
 
   return (
     <footer className="relative overflow-hidden border-t border-white/5 bg-king-black pt-24 pb-10 text-king-silver">
@@ -24,7 +26,7 @@ export default function Footer() {
           <p className="mb-4 font-serif italic text-sm tracking-[0.3em] text-king-red">
             · Ad Majorem Dei Gloriam ·
           </p>
-          <h3 className="heading-display text-5xl md:text-8xl text-king-bone text-glow">
+          <h3 className="heading-display text-5xl md:text-8xl text-gradient-red">
             VISTA-SE COM O REI
           </h3>
           <div className="mx-auto mt-6 h-px w-24 bg-gradient-to-r from-transparent via-king-red/40 to-transparent" />
@@ -33,14 +35,17 @@ export default function Footer() {
         <div className="grid grid-cols-2 gap-12 md:grid-cols-4">
           <div>
             <div className="mb-5">
-              <KingLogo variant="white" className="h-10 w-auto max-w-[180px]" />
+              <KingLogo
+                variant={theme === 'light' ? 'bordo' : 'white'}
+                className="h-10 w-auto max-w-[180px]"
+              />
             </div>
             <p className="font-serif text-sm leading-relaxed text-king-silver/70">
               Streetwear oversized com identidade sagrada. Peças limitadas, acabamento premium, reverência em cada detalhe.
             </p>
           </div>
           <div>
-            <h4 className="heading-display mb-5 text-xs tracking-[0.3em] text-king-bone">
+            <h4 className="heading-display mb-5 text-xs tracking-[0.3em] text-king-fg">
               Navegação
             </h4>
             <ul className="space-y-3 text-sm">
@@ -51,7 +56,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="heading-display mb-5 text-xs tracking-[0.3em] text-king-bone">
+            <h4 className="heading-display mb-5 text-xs tracking-[0.3em] text-king-fg">
               Suporte
             </h4>
             <ul className="space-y-3 text-sm">
@@ -77,7 +82,7 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="heading-display mb-5 text-xs tracking-[0.3em] text-king-bone">
+            <h4 className="heading-display mb-5 text-xs tracking-[0.3em] text-king-fg">
               Redes
             </h4>
             <div className="flex gap-3">

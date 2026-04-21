@@ -112,7 +112,7 @@ export default function StampSelector({
                 <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-red">
                   Personalização KING
                 </p>
-                <h2 className="mt-1 heading-display text-2xl text-king-bone md:text-3xl">
+                <h2 className="mt-1 heading-display text-2xl text-king-fg md:text-3xl">
                   ESCOLHA SUA ESTAMPA
                 </h2>
                 {headingNote && (
@@ -126,7 +126,7 @@ export default function StampSelector({
               </div>
               <button
                 onClick={onClose}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-bone"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-fg"
                 aria-label="Fechar"
               >
                 <HiOutlineX className="text-lg" />
@@ -140,7 +140,7 @@ export default function StampSelector({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Buscar estampa..."
-                  className="w-full rounded-xl border border-white/10 bg-king-black/60 py-2.5 pl-9 pr-3 font-mono text-[11px] uppercase tracking-[0.2em] text-king-bone placeholder:text-king-silver/40 focus:border-king-red focus:outline-none"
+                  className="w-full rounded-xl border border-white/10 bg-king-black/60 py-2.5 pl-9 pr-3 font-mono text-[11px] uppercase tracking-[0.2em] text-king-fg placeholder:text-king-silver/40 focus:border-king-red focus:outline-none"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -166,7 +166,7 @@ export default function StampSelector({
             >
               {filtered.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-                  <p className="heading-display text-lg text-king-bone">Nenhuma estampa encontrada</p>
+                  <p className="heading-display text-lg text-king-fg">Nenhuma estampa encontrada</p>
                   <p className="font-serif italic text-sm text-king-silver/60">
                     Tente outro termo ou categoria.
                   </p>
@@ -226,7 +226,7 @@ export default function StampSelector({
               <div className="flex items-center gap-3">
                 <button
                   onClick={onClose}
-                  className="rounded-xl border border-white/15 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver transition hover:border-king-red hover:text-king-bone"
+                  className="rounded-xl border border-white/15 px-5 py-2.5 font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver transition hover:border-king-red hover:text-king-fg"
                 >
                   Cancelar
                 </button>
@@ -261,7 +261,7 @@ function CategoryChip({
         'rounded-xl border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.25em] transition',
         active
           ? 'border-king-red bg-king-red text-king-bone'
-          : 'border-white/10 text-king-silver hover:border-king-red hover:text-king-bone'
+          : 'border-white/10 text-king-silver hover:border-king-red hover:text-king-fg'
       )}
     >
       {label}

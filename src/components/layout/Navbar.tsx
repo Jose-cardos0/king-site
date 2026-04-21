@@ -82,8 +82,8 @@ export default function Navbar() {
                 end={item.to === '/'}
                 className={({ isActive }) =>
                   cn(
-                    'relative font-mono text-[12px] uppercase tracking-[0.3em] text-king-silver transition-colors hover:text-king-bone',
-                    isActive && 'text-king-bone'
+                    'relative font-mono text-[12px] uppercase tracking-[0.3em] text-king-silver transition-colors hover:text-king-fg',
+                    isActive && 'text-king-fg'
                   )
                 }
                 data-cursor="hover"
@@ -114,7 +114,7 @@ export default function Navbar() {
           <div className="flex items-center gap-2 md:gap-4">
             <button
               aria-label="Buscar"
-              className="hidden items-center justify-center rounded-full p-2 text-king-silver transition hover:text-king-bone md:flex"
+              className="hidden items-center justify-center rounded-full p-2 text-king-silver transition hover:text-king-fg md:flex"
               data-cursor="hover"
             >
               <HiOutlineSearch className="text-xl" />
@@ -123,7 +123,7 @@ export default function Navbar() {
             <button
               aria-label="Alternar tema"
               onClick={toggleTheme}
-              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-bone"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-fg"
               data-cursor="hover"
             >
               <AnimatePresence mode="wait" initial={false}>
@@ -147,7 +147,7 @@ export default function Navbar() {
             <button
               aria-label="Carrinho"
               onClick={openCart}
-              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-bone"
+              className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-fg"
               data-cursor="hover"
             >
               <HiOutlineShoppingCart className="text-lg" />
@@ -173,7 +173,7 @@ export default function Navbar() {
                   if (!user) navigate('/login');
                   else setUserMenu((v) => !v);
                 }}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-bone"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-fg"
                 data-cursor="hover"
               >
                 <HiOutlineUser className="text-lg" />
@@ -190,14 +190,14 @@ export default function Navbar() {
                       <p className="truncate font-mono text-[11px] text-king-silver">
                         {user.email}
                       </p>
-                      <p className="truncate font-display text-sm text-king-bone">
+                      <p className="truncate font-display text-sm text-king-fg">
                         {user.displayName ?? 'Rei'}
                       </p>
                     </div>
                     <Link
                       to="/dashboard"
                       onClick={() => setUserMenu(false)}
-                      className="block rounded px-3 py-2 text-sm text-king-silver hover:bg-king-red/10 hover:text-king-bone"
+                      className="block rounded px-3 py-2 text-sm text-king-silver hover:bg-king-red/10 hover:text-king-fg"
                     >
                       Meus Pedidos
                     </Link>
@@ -212,7 +212,7 @@ export default function Navbar() {
                     )}
                     <button
                       onClick={handleLogout}
-                      className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-king-silver hover:bg-king-red/10 hover:text-king-bone"
+                      className="flex w-full items-center gap-2 rounded px-3 py-2 text-sm text-king-silver hover:bg-king-red/10 hover:text-king-fg"
                     >
                       <HiOutlineLogout /> Sair
                     </button>
@@ -264,7 +264,7 @@ export default function Navbar() {
                   <NavLink
                     to={item.to}
                     onClick={() => setMobileOpen(false)}
-                    className="heading-display text-4xl text-king-bone"
+                    className="heading-display text-4xl text-king-fg"
                   >
                     {item.label}
                   </NavLink>

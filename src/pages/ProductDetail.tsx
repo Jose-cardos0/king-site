@@ -128,7 +128,7 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <h2 className="heading-display text-3xl text-king-bone">Peça não encontrada</h2>
+        <h2 className="heading-display text-3xl text-king-fg">Peça não encontrada</h2>
         <Link to="/produtos" className="font-mono text-xs uppercase tracking-[0.3em] text-king-red">
           ← Voltar para a coleção
         </Link>
@@ -240,12 +240,12 @@ export default function ProductDetail() {
               {product.category.replace('-', ' ')}
             </p>
 
-            <h1 className="mt-2 heading-display text-4xl md:text-6xl leading-[0.95] text-king-bone">
+            <h1 className="mt-2 heading-display text-4xl md:text-6xl leading-[0.95] text-king-fg">
               {product.name}
             </h1>
 
             <div className="mt-6 flex items-baseline gap-4">
-              <span className="heading-display text-3xl text-king-bone">
+              <span className="heading-display text-3xl text-king-fg">
                 {formatBRL(product.price)}
               </span>
               {product.oldPrice && (
@@ -292,13 +292,13 @@ export default function ProductDetail() {
                     <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-red">
                       Estampa costas
                     </span>
-                    <span className="heading-display text-base text-king-bone md:text-lg">
+                    <span className="heading-display text-base text-king-fg md:text-lg">
                       {stamp.name}
                     </span>
                     <div className="mt-1 flex flex-wrap items-center gap-3">
                       <button
                         onClick={() => setStampOpen(true)}
-                        className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver transition hover:text-king-bone"
+                        className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver transition hover:text-king-fg"
                       >
                         <HiOutlinePencilAlt /> Trocar
                       </button>
@@ -322,7 +322,7 @@ export default function ProductDetail() {
                       <HiOutlineSparkles className="text-lg" />
                     </span>
                     <div>
-                      <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-bone">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-fg">
                         Selecionar estampa (costas)
                       </p>
                       <p className="mt-0.5 font-serif italic text-xs text-king-silver/70">
@@ -427,7 +427,7 @@ export default function ProductDetail() {
                       'h-12 min-w-[52px] border px-4 font-mono text-sm uppercase tracking-[0.25em] transition',
                       size === s
                         ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
-                        : 'border-white/15 text-king-silver hover:border-king-red hover:text-king-bone'
+                        : 'border-white/15 text-king-silver hover:border-king-red hover:text-king-fg'
                     )}
                   >
                     {s}
@@ -447,7 +447,7 @@ export default function ProductDetail() {
                 >
                   −
                 </button>
-                <span className="min-w-[52px] text-center font-display text-base text-king-bone">
+                <span className="min-w-[52px] text-center font-display text-base text-king-fg">
                   {quantity}
                 </span>
                 <button

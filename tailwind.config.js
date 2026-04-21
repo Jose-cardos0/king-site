@@ -6,14 +6,20 @@ export default {
     extend: {
       colors: {
         king: {
-          black: '#050505',
-          jet: '#0a0a0a',
-          coal: '#111111',
-          graphite: '#1a1a1a',
-          ash: '#2a2a2a',
-          silver: '#c9c9c9',
+          /** Superfícies e texto secundário seguem CSS vars (tema claro/escuro). */
+          black: 'rgb(var(--king-rgb-black) / <alpha-value>)',
+          jet: 'rgb(var(--king-rgb-jet) / <alpha-value>)',
+          coal: 'rgb(var(--king-rgb-coal) / <alpha-value>)',
+          graphite: 'rgb(var(--king-rgb-graphite) / <alpha-value>)',
+          ash: 'rgb(var(--king-rgb-ash) / <alpha-value>)',
+          silver: 'rgb(var(--king-rgb-silver) / <alpha-value>)',
+          /** Texto principal (corpo / títulos em fundos neutros). */
+          fg: 'rgb(var(--king-rgb-fg) / <alpha-value>)',
+          /** Tom claro fixo — texto sobre vermelho / acentos. */
           bone: '#f4f1ea',
           ivory: '#faf7f0',
+          /** Texto sempre escuro (ex.: selects em fundo claro). */
+          ink: '#0a0a0a',
           red: '#b91c1c',
           blood: '#8b0000',
           crimson: '#dc143c',

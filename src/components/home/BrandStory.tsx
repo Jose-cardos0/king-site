@@ -57,7 +57,7 @@ export default function BrandStory() {
 
         <div
           ref={textRef}
-          className="mx-auto max-w-5xl text-center font-serif text-2xl leading-relaxed text-king-bone md:text-5xl md:leading-[1.2]"
+          className="mx-auto max-w-5xl text-center font-serif text-2xl leading-relaxed text-king-fg md:text-5xl md:leading-[1.2]"
         >
           {words.map((w, i) => (
             <span key={i} className="word inline-block mr-[0.25em]">

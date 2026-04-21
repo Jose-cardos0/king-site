@@ -44,7 +44,7 @@ export default function CartDrawer() {
               </div>
               <button
                 onClick={close}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-bone"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-king-silver transition hover:border-king-red hover:text-king-fg"
               >
                 <HiOutlineX className="text-lg" />
               </button>
@@ -54,7 +54,7 @@ export default function CartDrawer() {
               {items.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-5 text-center">
                   <KingLogo variant="bordo" className="h-16 w-auto opacity-40" />
-                  <p className="heading-display text-lg text-king-bone">Sua sacola está vazia</p>
+                  <p className="heading-display text-lg text-king-fg">Sua sacola está vazia</p>
                   <p className="font-serif italic text-sm text-king-silver/60">
                     Sem peças. Sem reinado.
                   </p>
@@ -113,7 +113,7 @@ export default function CartDrawer() {
                       </div>
                       <div className="flex flex-1 flex-col justify-between">
                         <div>
-                          <p className="heading-display text-sm text-king-bone">
+                          <p className="heading-display text-sm text-king-fg">
                             {item.name}
                           </p>
                           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver/70">
@@ -146,7 +146,7 @@ export default function CartDrawer() {
                             >
                               <HiOutlineMinus className="text-xs" />
                             </button>
-                            <span className="px-3 font-mono text-xs text-king-bone">
+                            <span className="px-3 font-mono text-xs text-king-fg">
                               {item.quantity}
                             </span>
                             <button
@@ -164,7 +164,7 @@ export default function CartDrawer() {
                               <HiOutlinePlus className="text-xs" />
                             </button>
                           </div>
-                          <p className="font-display text-sm text-king-bone">
+                          <p className="font-display text-sm text-king-fg">
                             {formatBRL(item.price * item.quantity)}
                           </p>
                         </div>
@@ -190,7 +190,7 @@ export default function CartDrawer() {
                   <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
                     Subtotal
                   </span>
-                  <span className="heading-display text-xl text-king-bone">
+                  <span className="heading-display text-xl text-king-fg">
                     {formatBRL(total)}
                   </span>
                 </div>

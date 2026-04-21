@@ -11,11 +11,26 @@
     --king-glow: #ff1f3d;
     --king-gold: #d4af37;
     --cursor-size: 14px;
+    /* Tailwind king-* (exceto bone/ivory/brand) */
+    --king-rgb-black: 5 5 5;
+    --king-rgb-jet: 10 10 10;
+    --king-rgb-coal: 17 17 17;
+    --king-rgb-graphite: 26 26 26;
+    --king-rgb-ash: 42 42 42;
+    --king-rgb-silver: 201 201 201;
+    --king-rgb-fg: 244 241 234;
   }
 
   :root.light {
     --king-bg: #faf7f0;
     --king-fg: #0a0a0a;
+    --king-rgb-black: 250 247 240;
+    --king-rgb-jet: 242 238 230;
+    --king-rgb-coal: 232 227 218;
+    --king-rgb-graphite: 220 214 204;
+    --king-rgb-ash: 160 154 144;
+    --king-rgb-silver: 82 78 72;
+    --king-rgb-fg: 10 10 10;
   }
 
   * {
@@ -53,6 +68,11 @@
   ::selection {
     background: rgba(220, 20, 60, 0.22);
     color: #faf7f0;
+  }
+
+  :root.light ::selection {
+    background: rgba(220, 20, 60, 0.2);
+    color: #0a0a0a;
   }
 
   /* Scrollbar */
@@ -119,7 +139,8 @@
   }
 
   .btn-king {
-    @apply relative inline-flex items-center justify-center gap-2 px-8 py-4 font-display text-sm uppercase tracking-[0.2em] text-king-bone transition-all duration-500 ease-king;
+    @apply relative inline-flex items-center justify-center gap-2 px-8 py-4 font-display text-sm uppercase tracking-[0.2em] transition-all duration-500 ease-king;
+    color: #faf7f0;
     background: linear-gradient(135deg, #8b0000 0%, #dc143c 50%, #8b0000 100%);
     background-size: 200% 200%;
     background-position: 0% 50%;
@@ -133,7 +154,7 @@
   }
 
   .btn-ghost {
-    @apply relative inline-flex items-center justify-center gap-2 px-8 py-4 font-display text-sm uppercase tracking-[0.2em] text-king-bone transition-all duration-500;
+    @apply relative inline-flex items-center justify-center gap-2 px-8 py-4 font-display text-sm uppercase tracking-[0.2em] text-king-fg transition-all duration-500;
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.02);
   }
@@ -242,7 +263,7 @@
   }
 
   .input-king {
-    @apply w-full bg-transparent border-b border-white/15 px-0 py-3 text-king-bone placeholder:text-white/30 outline-none transition-all duration-300;
+    @apply w-full bg-transparent border-b border-white/15 px-0 py-3 text-king-fg placeholder:text-white/30 outline-none transition-all duration-300;
     letter-spacing: 0.05em;
   }
   .input-king:focus {
@@ -251,19 +272,19 @@
   }
 
   .light .input-king {
-    @apply text-king-black border-black/15 placeholder:text-black/40;
+    @apply text-king-fg border-black/15 placeholder:text-black/40;
   }
 
   /** Inputs em bloco — contorno discreto (sem borda branca forte). */
   .input-king-panel {
-    @apply w-full rounded-md bg-king-black/55 px-3.5 py-3.5 text-base text-king-bone placeholder:text-king-silver/45 outline-none transition;
+    @apply w-full rounded-md bg-king-black/55 px-3.5 py-3.5 text-base text-king-fg placeholder:text-king-silver/45 outline-none transition;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
   .input-king-panel:focus {
     box-shadow: inset 0 0 0 1px rgba(220, 20, 60, 0.5);
   }
   .light .input-king-panel {
-    @apply bg-white text-king-black placeholder:text-black/40;
+    @apply bg-white text-king-fg placeholder:text-black/40;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   }
   .light .input-king-panel:focus {
@@ -272,7 +293,7 @@
 
   /** Select nativo legível no Windows (lista escura + texto claro). */
   .select-king-dark {
-    @apply w-full rounded-md bg-king-jet px-3.5 py-3.5 font-mono text-sm uppercase tracking-[0.18em] text-king-bone outline-none transition;
+    @apply w-full rounded-md bg-king-jet px-3.5 py-3.5 font-mono text-sm uppercase tracking-[0.18em] text-king-fg outline-none transition;
     color-scheme: dark;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
@@ -284,7 +305,7 @@
     color: #faf7f0;
   }
   .light .select-king-dark {
-    @apply bg-king-bone text-king-black;
+    @apply bg-king-bone text-king-ink;
     color-scheme: light;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
   }

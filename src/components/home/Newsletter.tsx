@@ -27,7 +27,7 @@ export default function Newsletter() {
           <span className="font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
             Inscreva-se na realeza
           </span>
-          <h2 className="heading-display text-4xl md:text-6xl text-king-bone">
+          <h2 className="heading-display text-4xl md:text-6xl text-king-fg">
             DROPS EM <span className="text-gradient-red">PRIMEIRA MÃO</span>
           </h2>
           <p className="font-serif italic text-king-silver/80">
