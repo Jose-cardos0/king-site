@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import type { Appearance, StripeElementsOptions } from '@stripe/stripe-js';
 import { HiOutlineLockClosed, HiOutlineShieldCheck } from 'react-icons/hi';
@@ -8,35 +8,69 @@ import GlowButton from '@/components/ui/GlowButton';
 import { getStripe } from '@/lib/stripe';
 import { createPaymentIntent } from '@/services/checkout.api';
 import { formatBRL } from '@/utils/format';
+import { cn } from '@/utils/cn';
+import { useThemeStore } from '@/store/useThemeStore';
 
-const appearance: Appearance = {
-  theme: 'night',
-  labels: 'floating',
-  variables: {
-    colorPrimary: '#c1121f',
-    colorBackground: '#0b0b0d',
-    colorText: '#eeeae2',
-    colorDanger: '#ff5c6c',
-    fontFamily: 'IBM Plex Mono, ui-monospace, SFMono-Regular, monospace',
-    spacingUnit: '4px',
-    borderRadius: '6px',
-  },
-  rules: {
-    '.Input': {
-      border: '1px solid rgba(255,255,255,0.1)',
-      boxShadow: 'none',
+function buildAppearance(theme: 'light' | 'dark'): Appearance {
+  if (theme === 'light') {
+    return {
+      theme: 'stripe',
+      labels: 'floating',
+      variables: {
+        colorPrimary: '#c1121f',
+        colorBackground: '#ffffff',
+        colorText: '#1a1a1a',
+        colorDanger: '#c1121f',
+        fontFamily: 'IBM Plex Mono, ui-monospace, SFMono-Regular, monospace',
+        spacingUnit: '4px',
+        borderRadius: '6px',
+      },
+      rules: {
+        '.Input': {
+          border: '1px solid rgba(0,0,0,0.12)',
+          boxShadow: 'none',
+        },
+        '.Input:focus': {
+          border: '1px solid #c1121f',
+          boxShadow: '0 0 0 1px #c1121f',
+        },
+        '.Label': {
+          fontSize: '10px',
+          letterSpacing: '0.28em',
+          textTransform: 'uppercase',
+        },
+      },
+    };
+  }
+  return {
+    theme: 'night',
+    labels: 'floating',
+    variables: {
+      colorPrimary: '#c1121f',
+      colorBackground: '#0b0b0d',
+      colorText: '#eeeae2',
+      colorDanger: '#ff5c6c',
+      fontFamily: 'IBM Plex Mono, ui-monospace, SFMono-Regular, monospace',
+      spacingUnit: '4px',
+      borderRadius: '6px',
     },
-    '.Input:focus': {
-      border: '1px solid #c1121f',
-      boxShadow: '0 0 0 1px #c1121f',
+    rules: {
+      '.Input': {
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: 'none',
+      },
+      '.Input:focus': {
+        border: '1px solid #c1121f',
+        boxShadow: '0 0 0 1px #c1121f',
+      },
+      '.Label': {
+        fontSize: '10px',
+        letterSpacing: '0.28em',
+        textTransform: 'uppercase',
+      },
     },
-    '.Label': {
-      fontSize: '10px',
-      letterSpacing: '0.28em',
-      textTransform: 'uppercase',
-    },
-  },
-};
+  };
+}
 
 type OnPaid = (paymentIntentId: string) => void | Promise<void>;
 
@@ -51,10 +85,13 @@ type Props = {
 };
 
 export default function StripePaymentForm(props: Props) {
+  const theme = useThemeStore((s) => s.theme);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const appearance = useMemo(() => buildAppearance(theme), [theme]);
 
   useEffect(() => {
     let cancel = false;
@@ -114,12 +151,17 @@ export default function StripePaymentForm(props: Props) {
   };
 
   return (
-    <Elements stripe={getStripe()} options={options}>
+    <Elements
+      key={`${clientSecret}-${theme}`}
+      stripe={getStripe()}
+      options={options}
+    >
       <InnerForm
         total={props.total}
         paymentIntentId={paymentIntentId!}
         onPaid={props.onPaid}
         disabled={props.disabled}
+        theme={theme}
       />
     </Elements>
   );
@@ -130,11 +172,13 @@ function InnerForm({
   paymentIntentId,
   onPaid,
   disabled,
+  theme,
 }: {
   total: number;
   paymentIntentId: string;
   onPaid: OnPaid;
   disabled?: boolean;
+  theme: 'light' | 'dark';
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -178,8 +222,32 @@ function InnerForm({
       <PaymentElement
         options={{
           layout: { type: 'tabs', defaultCollapsed: false },
+          /** Google Pay / Apple Pay quando a conta e o domínio estão elegíveis na Stripe. */
+          wallets: {
+            applePay: 'auto',
+            googlePay: 'auto',
+          },
+          /** Campos do cartão alinhados ao tema do site. */
+          fields: {
+            billingDetails: {
+              address: {
+                country: 'never',
+              },
+            },
+          },
         }}
       />
+
+      <p
+        className={cn(
+          'font-mono text-[9px] uppercase leading-relaxed tracking-[0.18em]',
+          theme === 'light' ? 'text-king-silver' : 'text-king-silver/70'
+        )}
+      >
+        Parcelamento e Google Pay dependem da tua conta Stripe (Brasil), do valor mínimo e do
+        domínio registado. Ativa os métodos em{' '}
+        <span className="underline">Stripe Dashboard → Definições → Métodos de pagamento</span>.
+      </p>
 
       <div className="flex flex-wrap items-center gap-4 text-xs font-mono uppercase tracking-[0.25em] text-king-silver/70">
         <span className="flex items-center gap-2">

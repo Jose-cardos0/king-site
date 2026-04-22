@@ -56,6 +56,14 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
       amount: amountCents,
       currency,
       automatic_payment_methods: { enabled: true },
+      /** Parcelamento no cartão (Brasil) — sujeito a regras mínimas da Stripe/conta. */
+      payment_method_options: {
+        card: {
+          installments: {
+            enabled: true,
+          },
+        },
+      },
       metadata: {
         ...metadata,
         subtotal_brl: subtotal.toFixed(2),
