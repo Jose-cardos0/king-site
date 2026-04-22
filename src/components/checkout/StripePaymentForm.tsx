@@ -13,51 +13,26 @@ import PaymentCardShell from '@/components/checkout/PaymentCardShell';
 import { getStripe } from '@/lib/stripe';
 import { createPaymentIntent } from '@/services/checkout.api';
 import { formatBRL } from '@/utils/format';
+import { cn } from '@/utils/cn';
 import { useMatchMedia } from '@/hooks/useMatchMedia';
 import { useThemeStore } from '@/store/useThemeStore';
 
-function buildAppearance(theme: 'light' | 'dark', narrow: boolean): Appearance {
+/**
+ * Tema noite no Stripe para contraste com o cartão.
+ * Fundo do iframe alinhado ao cartão: roxo profundo no modo claro (Nubank), grafite no escuro.
+ */
+function buildPaymentAppearance(siteTheme: 'light' | 'dark', narrow: boolean): Appearance {
   const su = narrow ? '3px' : '4px';
   const labelFs = narrow ? '8px' : '10px';
   const labelTrack = narrow ? '0.1em' : '0.28em';
+  const colorBackground = siteTheme === 'light' ? '#2d0f42' : '#15101f';
 
-  if (theme === 'light') {
-    return {
-      theme: 'stripe',
-      labels: 'floating',
-      variables: {
-        colorPrimary: '#c1121f',
-        colorBackground: '#ffffff',
-        colorText: '#1a1a1a',
-        colorDanger: '#c1121f',
-        fontFamily: 'IBM Plex Mono, ui-monospace, SFMono-Regular, monospace',
-        spacingUnit: su,
-        borderRadius: narrow ? '5px' : '6px',
-      },
-      rules: {
-        '.Input': {
-          border: '1px solid rgba(0,0,0,0.12)',
-          boxShadow: 'none',
-        },
-        '.Input:focus': {
-          border: '1px solid #c1121f',
-          boxShadow: '0 0 0 1px #c1121f',
-        },
-        '.Label': {
-          fontSize: labelFs,
-          letterSpacing: labelTrack,
-          textTransform: 'uppercase',
-        },
-      },
-    };
-  }
   return {
     theme: 'night',
     labels: 'floating',
     variables: {
       colorPrimary: '#c1121f',
-      /** Próximo do fundo do PaymentCardShell para integrar o iframe Stripe. */
-      colorBackground: '#15101f',
+      colorBackground,
       colorText: '#eeeae2',
       colorDanger: '#ff5c6c',
       fontFamily: 'IBM Plex Mono, ui-monospace, SFMono-Regular, monospace',
@@ -103,7 +78,7 @@ export default function StripePaymentForm(props: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const appearance = useMemo(
-    () => buildAppearance(theme, narrowViewport),
+    () => buildPaymentAppearance(theme, narrowViewport),
     [theme, narrowViewport]
   );
 
@@ -166,7 +141,7 @@ export default function StripePaymentForm(props: Props) {
 
   return (
     <Elements
-      key={`${clientSecret}-${theme}`}
+      key={`${clientSecret}-stripe-${theme}`}
       stripe={getStripe()}
       options={options}
     >
@@ -261,7 +236,7 @@ function InnerForm({
 
   return (
     <div className="space-y-6">
-      <PaymentCardShell theme={theme}>
+      <PaymentCardShell>
         <PaymentElement
           options={{
             layout: paymentLayout,
@@ -286,11 +261,16 @@ function InnerForm({
         />
       </PaymentCardShell>
 
-      <div className="flex flex-col gap-2 text-[10px] font-mono uppercase leading-snug tracking-[0.18em] text-king-silver/70 sm:flex-row sm:flex-wrap sm:gap-4 sm:text-xs sm:tracking-[0.25em]">
+      <div
+        className={cn(
+          'flex flex-col gap-2 text-[10px] font-mono uppercase leading-snug tracking-[0.18em] sm:flex-row sm:flex-wrap sm:gap-4 sm:text-xs sm:tracking-[0.25em]',
+          theme === 'light' ? 'text-king-coal/75' : 'text-king-silver/70'
+        )}
+      >
         <span className="flex items-center gap-2">
           <HiOutlineLockClosed /> Dados criptografados
         </span>
-    
+     
         <span className="flex items-center gap-2 opacity-70">
           PI: {paymentIntentId.slice(-6)}
         </span>

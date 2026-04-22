@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Truck, CheckCircle2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
 import { formatBRL } from '@/utils/format';
 import { quoteShipping, type ShippingOption } from '@/services/checkout.api';
+
+const AUTO_QUOTE_MS = 450;
 
 type Props = {
   cep: string;
@@ -17,19 +19,20 @@ export default function ShippingQuoteBox({ cep, itemsCount, selected, onSelect }
   const [loading, setLoading] = useState(false);
   const [queried, setQueried] = useState(false);
   const [isFree, setIsFree] = useState(false);
+  const inFlight = useRef(false);
 
   const cepDigits = (cep ?? '').replace(/\D/g, '');
   const canQuote = cepDigits.length === 8;
 
-  const run = async () => {
-    if (!canQuote) {
-      toast.error('Informe um CEP válido (8 dígitos)');
-      return;
-    }
+  const fetchQuote = useCallback(async () => {
+    const digits = (cep ?? '').replace(/\D/g, '');
+    if (digits.length !== 8) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setLoading(true);
     try {
       const { options: opts, freeByLocation } = await quoteShipping({
-        cep: cepDigits,
+        cep: digits,
         itemsCount,
       });
       setOptions(opts);
@@ -41,8 +44,35 @@ export default function ShippingQuoteBox({ cep, itemsCount, selected, onSelect }
       const msg = err instanceof Error ? err.message : 'Erro ao cotar frete';
       toast.error(msg);
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
+  }, [cep, itemsCount, onSelect]);
+
+  /** CEP incompleto: limpa cotação e seleção de frete no pai. */
+  useEffect(() => {
+    if (cepDigits.length >= 8) return;
+    setQueried(false);
+    setOptions([]);
+    setIsFree(false);
+    onSelect(null);
+  }, [cepDigits, onSelect]);
+
+  /** Com 8 dígitos: após debounce, cota automaticamente (equivale a “Calcular”). */
+  useEffect(() => {
+    if (cepDigits.length !== 8) return;
+    const id = window.setTimeout(() => {
+      void fetchQuote();
+    }, AUTO_QUOTE_MS);
+    return () => window.clearTimeout(id);
+  }, [cepDigits, itemsCount, fetchQuote]);
+
+  const run = () => {
+    if (!canQuote) {
+      toast.error('Informe um CEP válido (8 dígitos)');
+      return;
+    }
+    void fetchQuote();
   };
 
   return (

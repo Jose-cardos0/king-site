@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -18,6 +19,10 @@ import PostCheckoutModal from '@/components/checkout/PostCheckoutModal';
 import CouponField, { type AppliedCoupon } from '@/components/checkout/CouponField';
 import type { ShippingOption } from '@/services/checkout.api';
 import { incrementCouponUsage } from '@/services/coupons.service';
+import {
+  readSavedShipping,
+  writeSavedShipping,
+} from '@/utils/savedCheckoutAddress';
 
 export default function Checkout() {
   const { items, subtotal, clear } = useCartStore();
@@ -34,7 +39,7 @@ export default function Checkout() {
   } | null>(null);
 
   const [shipping, setShipping] = useState<Shipping>({
-    fullName: user?.displayName ?? '',
+    fullName: '',
     phone: '',
     address: '',
     number: '',
@@ -43,6 +48,33 @@ export default function Checkout() {
     state: '',
     zip: '',
   });
+  /** Endereço vindo do localStorage: mostra card + frete + cupom em vez do formulário completo. */
+  const [addressSummaryMode, setAddressSummaryMode] = useState(false);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setAddressSummaryMode(false);
+      return;
+    }
+    const saved = readSavedShipping(user.uid);
+    if (saved) {
+      setShipping(saved);
+      setAddressSummaryMode(true);
+      setSelectedShipping(null);
+    } else {
+      setShipping({
+        fullName: user.displayName ?? '',
+        phone: '',
+        address: '',
+        number: '',
+        complement: '',
+        city: '',
+        state: '',
+        zip: '',
+      });
+      setAddressSummaryMode(false);
+    }
+  }, [user?.uid, user?.displayName]);
 
   const total = subtotal();
   const shippingCost = selectedShipping?.price ?? 0;
@@ -97,6 +129,7 @@ export default function Checkout() {
       toast.error('Calcule e selecione uma opção de frete');
       return;
     }
+    writeSavedShipping(user.uid, shipping);
     setStep(2);
   };
 
@@ -217,71 +250,119 @@ export default function Checkout() {
           >
             {step === 1 && (
               <>
-                <h3 className="heading-display mb-6 text-xl text-king-fg">
-                  Endereço de entrega
-                </h3>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                  <Field
-                    label="Nome completo"
-                    value={shipping.fullName}
-                    onChange={(v) => onField('fullName', v)}
-                  />
-                  <Field
-                    label="Telefone"
-                    value={shipping.phone}
-                    onChange={(v) => onField('phone', v)}
-                  />
-                  <Field
-                    label="CEP"
-                    value={shipping.zip}
-                    onChange={(v) => onField('zip', maskCEP(v))}
-                    placeholder="00000-000"
-                  />
-                  <Field
-                    label="Cidade"
-                    value={shipping.city}
-                    onChange={(v) => onField('city', v)}
-                  />
-                  <Field
-                    label="Estado"
-                    value={shipping.state}
-                    onChange={(v) => onField('state', v.toUpperCase().slice(0, 2))}
-                    placeholder="SP"
-                  />
-                  <Field
-                    label="Endereço"
-                    value={shipping.address}
-                    onChange={(v) => onField('address', v)}
-                  />
-                  <Field
-                    label="Número"
-                    value={shipping.number}
-                    onChange={(v) => onField('number', v)}
-                  />
-                  <Field
-                    label="Complemento (opcional)"
-                    value={shipping.complement ?? ''}
-                    onChange={(v) => onField('complement', v)}
-                  />
-                </div>
+                {addressSummaryMode && user ? (
+                  <>
+                    <div className="mb-5 flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="heading-display text-xl text-king-fg">
+                          Teu endereço
+                        </h3>
+                        <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.22em] text-king-silver/70">
+                          Guardado neste dispositivo · CEP para cotar o frete
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddressSummaryMode(false);
+                          setSelectedShipping(null);
+                        }}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 text-king-silver transition hover:border-king-red hover:text-king-red"
+                        aria-label="Editar endereço"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    </div>
 
-                <div className="mt-8 grid gap-4">
-                  <ShippingQuoteBox
-                    cep={shipping.zip}
-                    itemsCount={items.reduce((acc, i) => acc + i.quantity, 0)}
-                    selected={selectedShipping}
-                    onSelect={setSelectedShipping}
-                  />
-                  <CouponField
-                    applied={coupon}
-                    onApply={setCoupon}
-                    onRemove={() => setCoupon(null)}
-                  />
-                </div>
+                    <SavedAddressCard shipping={shipping} />
 
-                <div className="mt-8 flex justify-end">
-                  <GlowButton onClick={goPayment}>Continuar para pagamento</GlowButton>
-                </div>
+                    <div className="mt-8 grid gap-4">
+                      <ShippingQuoteBox
+                        cep={shipping.zip}
+                        itemsCount={items.reduce((acc, i) => acc + i.quantity, 0)}
+                        selected={selectedShipping}
+                        onSelect={setSelectedShipping}
+                      />
+                      <CouponField
+                        applied={coupon}
+                        onApply={setCoupon}
+                        onRemove={() => setCoupon(null)}
+                      />
+                    </div>
+
+                    <div className="mt-8 flex justify-end">
+                      <GlowButton onClick={goPayment}>Continuar para pagamento</GlowButton>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="heading-display mb-6 text-xl text-king-fg">
+                      Endereço de entrega
+                    </h3>
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <Field
+                        label="Nome completo"
+                        value={shipping.fullName}
+                        onChange={(v) => onField('fullName', v)}
+                      />
+                      <Field
+                        label="Telefone"
+                        value={shipping.phone}
+                        onChange={(v) => onField('phone', v)}
+                      />
+                      <Field
+                        label="CEP"
+                        value={shipping.zip}
+                        onChange={(v) => onField('zip', maskCEP(v))}
+                        placeholder="00000-000"
+                      />
+                      <Field
+                        label="Cidade"
+                        value={shipping.city}
+                        onChange={(v) => onField('city', v)}
+                      />
+                      <Field
+                        label="Estado"
+                        value={shipping.state}
+                        onChange={(v) => onField('state', v.toUpperCase().slice(0, 2))}
+                        placeholder="SP"
+                      />
+                      <Field
+                        label="Endereço"
+                        value={shipping.address}
+                        onChange={(v) => onField('address', v)}
+                      />
+                      <Field
+                        label="Número"
+                        value={shipping.number}
+                        onChange={(v) => onField('number', v)}
+                      />
+                      <Field
+                        label="Complemento (opcional)"
+                        value={shipping.complement ?? ''}
+                        onChange={(v) => onField('complement', v)}
+                      />
+                    </div>
+
+                    <div className="mt-8 grid gap-4">
+                      <ShippingQuoteBox
+                        cep={shipping.zip}
+                        itemsCount={items.reduce((acc, i) => acc + i.quantity, 0)}
+                        selected={selectedShipping}
+                        onSelect={setSelectedShipping}
+                      />
+                      <CouponField
+                        applied={coupon}
+                        onApply={setCoupon}
+                        onRemove={() => setCoupon(null)}
+                      />
+                    </div>
+
+                    <div className="mt-8 flex justify-end">
+                      <GlowButton onClick={goPayment}>Continuar para pagamento</GlowButton>
+                    </div>
+                  </>
+                )}
               </>
             )}
 
@@ -408,6 +489,24 @@ export default function Checkout() {
         )}
       </AnimatePresence>
     </main>
+  );
+}
+
+function SavedAddressCard({ shipping }: { shipping: Shipping }) {
+  const line2 = [shipping.address, shipping.number].filter(Boolean).join(', ');
+  const comp = (shipping.complement ?? '').trim();
+  return (
+    <div className="rounded-md border border-white/10 bg-king-black/30 p-4 sm:p-5">
+      <p className="heading-display text-base text-king-fg sm:text-lg">{shipping.fullName}</p>
+      <p className="mt-2 font-mono text-xs text-king-silver">{shipping.phone}</p>
+      <p className="mt-3 font-serif text-sm italic leading-relaxed text-king-silver/90">
+        {line2}
+        {comp ? ` · ${comp}` : ''}
+      </p>
+      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.2em] text-king-silver/80">
+        {shipping.city} — {shipping.state} · CEP {shipping.zip}
+      </p>
+    </div>
   );
 }
 
