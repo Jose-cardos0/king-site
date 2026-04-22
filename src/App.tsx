@@ -29,6 +29,8 @@ import { useStampsStore } from '@/store/useStampsStore';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AdminRoute from '@/components/auth/AdminRoute';
 
+import bendoFloat from '@/assets/bendo.png';
+
 function App() {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -126,6 +128,13 @@ function App() {
           </AnimatePresence>
 
           <Footer />
+
+          <img
+            src={bendoFloat}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none fixed bottom-4 right-4 z-[60] h-16 w-auto opacity-80 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] md:h-20"
+          />
         </div>
       </SmoothScroll>
     </>
