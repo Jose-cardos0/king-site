@@ -322,7 +322,7 @@ function CouponEditor({
               <input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="EVANDSON10"
+                placeholder="SEUCUMPOM10"
                 className="input-king flex-1 uppercase tracking-[0.2em]"
                 autoFocus
               />

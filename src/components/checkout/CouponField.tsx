@@ -94,7 +94,7 @@ export default function CouponField({ applied, onApply, onRemove, disabled }: Pr
                 void apply();
               }
             }}
-            placeholder="EVANDSON10"
+            placeholder="SEUCUPOM10"
             disabled={disabled || loading}
             className="input-king flex-1 uppercase tracking-[0.2em]"
           />

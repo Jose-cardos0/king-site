@@ -6,8 +6,17 @@ import type { Request, Response } from 'express';
  */
 
 const SUPERFRETE_BASE = 'https://api.superfrete.com';
-const ORIGIN_CEP = '49680000';
+const DEFAULT_ORIGIN_CEP = '49680000';
 const FREE_SHIPPING_CEPS = new Set(['49680000']);
+
+export class SuperFreteHttpError extends Error {
+  readonly statusCode: number;
+  constructor(statusCode: number, message: string) {
+    super(message);
+    this.name = 'SuperFreteHttpError';
+    this.statusCode = statusCode;
+  }
+}
 
 export interface SuperFreteService {
   id: number;
@@ -42,6 +51,88 @@ function num(v: unknown): number {
   return 0;
 }
 
+function originCep(): string {
+  const raw = (
+    process.env.SUPERFRETE_ORIGIN_CEP ||
+    process.env.SUPER_FRETE_ORIGIN_CEP ||
+    DEFAULT_ORIGIN_CEP
+  ).replace(/\D/g, '');
+  return raw.length === 8 ? raw : DEFAULT_ORIGIN_CEP;
+}
+
+function serviceIds(): string {
+  const s = (process.env.SUPERFRETE_SERVICES ?? '1,2,17').trim();
+  return s || '1,2,17';
+}
+
+/** CEP óbvio inválido antes de chamar APIs. */
+function assertCepFormatPlausible(cep: string): void {
+  if (cep.length !== 8) {
+    throw new SuperFreteHttpError(400, 'CEP deve ter 8 dígitos.');
+  }
+  if (/^0{8}$/.test(cep)) {
+    throw new SuperFreteHttpError(400, 'CEP inválido.');
+  }
+}
+
+/** ViaCEP: evita chamada à SuperFrete quando o CEP não existe na base dos Correios. */
+async function assertCepExistsViaCep(cep: string): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(t);
+    if (!res.ok) return;
+    const data = (await res.json()) as { erro?: boolean };
+    if (data?.erro === true) {
+      throw new SuperFreteHttpError(
+        400,
+        'CEP não encontrado. Confirme os oito dígitos (ex.: 01310-100).'
+      );
+    }
+  } catch (e) {
+    if (e instanceof SuperFreteHttpError) throw e;
+    // falha de rede / timeout no ViaCEP: segue para a SuperFrete
+  }
+}
+
+function friendlySuperFreteBody(status: number, body: string): string {
+  if (status !== 400) {
+    return `SuperFrete ${status}: ${body.slice(0, 400)}`;
+  }
+  try {
+    const j = JSON.parse(body) as {
+      errors?: Record<string, string[] | string>;
+      message?: string;
+    };
+    const errs = j.errors;
+    const parts: string[] = [];
+
+    const dest =
+      errs?.['correios.destination_postcode'] ??
+      errs?.['correios.destination_postal_code'];
+    if (dest) {
+      parts.push(
+        'O CEP de destino foi recusado pelos Correios (inválido ou fora do formato esperado). Verifique os 8 dígitos.'
+      );
+    }
+    if (errs?.['ms-freight-calculator.no_result']) {
+      parts.push(
+        'Não há frete disponível para este CEP com os serviços configurados. Experimente outro CEP ou contacte a loja.'
+      );
+    }
+    if (parts.length) {
+      return [...new Set(parts)].join(' ');
+    }
+    return j.message ?? `Não foi possível cotar o frete (${body.slice(0, 200)})`;
+  } catch {
+    return `SuperFrete ${status}: ${body.slice(0, 400)}`;
+  }
+}
+
 /** A API às vezes devolve array na raiz ou dentro de `content` / `data` / etc. */
 function normalizeCalculatorPayload(raw: unknown): SuperFreteService[] {
   if (Array.isArray(raw)) {
@@ -72,9 +163,8 @@ export async function quoteShipping(opts: {
 }): Promise<{ options: ShippingOption[]; freeByLocation: boolean }> {
   const cep = onlyDigits(opts.destinationCep);
 
-  if (cep.length !== 8) {
-    throw new Error('CEP inválido');
-  }
+  assertCepFormatPlausible(cep);
+  await assertCepExistsViaCep(cep);
 
   if (FREE_SHIPPING_CEPS.has(cep)) {
     return {
@@ -104,11 +194,12 @@ export async function quoteShipping(opts: {
     );
   }
 
+  const fromPostal = originCep();
   const weight = Math.max(0.3, Math.min(30, opts.totalWeightKg));
   const body = {
-    from: { postal_code: ORIGIN_CEP },
+    from: { postal_code: fromPostal },
     to: { postal_code: cep },
-    services: '1,2,17',
+    services: serviceIds(),
     options: {
       own_hand: false,
       receipt: false,
@@ -136,12 +227,22 @@ export async function quoteShipping(opts: {
     body: JSON.stringify(body),
   });
 
+  const txt = await res.text();
   if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`SuperFrete ${res.status}: ${txt.slice(0, 400)}`);
+    const friendly = friendlySuperFreteBody(res.status, txt);
+    if (res.status === 400) {
+      throw new SuperFreteHttpError(400, friendly);
+    }
+    throw new Error(friendly);
   }
 
-  const raw = (await res.json()) as unknown;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(txt) as unknown;
+  } catch {
+    throw new Error('SuperFrete devolveu resposta que não é JSON');
+  }
+
   const data = normalizeCalculatorPayload(raw);
   if (!data.length) {
     throw new Error(
@@ -154,10 +255,7 @@ export async function quoteShipping(opts: {
     .map((s) => {
       const price = num(s.discount ?? s.price);
       const days =
-        s.delivery_time ??
-        s.delivery_range?.max ??
-        s.delivery_range?.min ??
-        7;
+        s.delivery_time ?? s.delivery_range?.max ?? s.delivery_range?.min ?? 7;
       return {
         id: String(s.id),
         name: s.name ?? s.company?.name ?? `Serviço ${s.id}`,
@@ -196,8 +294,13 @@ export function handleQuote(req: Request, res: Response): void {
 
   quoteShipping({ destinationCep: cep, totalWeightKg: weight, itemsCount: itemsCount ?? 1 })
     .then((r) => res.json(r))
-    .catch((err: Error) => {
-      console.error('[superfrete] quote error', err.message);
-      res.status(500).json({ error: err.message });
+    .catch((err: unknown) => {
+      console.error('[superfrete] quote error', err);
+      if (err instanceof SuperFreteHttpError) {
+        res.status(err.statusCode).json({ error: err.message });
+        return;
+      }
+      const msg = err instanceof Error ? err.message : 'Erro ao cotar frete';
+      res.status(500).json({ error: msg });
     });
 }
