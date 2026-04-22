@@ -27,9 +27,15 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useStampsStore } from '@/store/useStampsStore';
 import { uploadProductGalleryImage } from '@/services/storage.service';
 import StampsTab from '@/components/admin/StampsTab';
+import CouponsTab from '@/components/admin/CouponsTab';
 import AdminPaginationBar, { ADMIN_PAGE_SIZE } from '@/components/admin/AdminPaginationBar';
 import OrderCard from '@/components/admin/OrderCard';
 import AdminKPIs from '@/components/admin/AdminKPIs';
+import OrdersToolbar, {
+  EMPTY_FILTERS,
+  matchesFilters,
+  type OrdersFilters,
+} from '@/components/admin/OrdersToolbar';
 import {
   FRONT_LOGO_PRETO_ID,
   kingLogoPretoOnDarkImgClass,
@@ -47,7 +53,7 @@ import {
 
 const ALL_SIZES: ProductSize[] = ['P', 'M', 'G', 'GG', 'XGG'];
 
-type AdminTab = 'products' | 'orders' | 'kpis' | 'stamps';
+type AdminTab = 'products' | 'orders' | 'kpis' | 'stamps' | 'coupons';
 
 export default function Admin() {
   const [tab, setTab] = useState<AdminTab>('products');
@@ -57,9 +63,15 @@ export default function Admin() {
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; product?: Product } | null>(null);
   const [productsPage, setProductsPage] = useState(1);
   const [ordersPage, setOrdersPage] = useState(1);
+  const [orderFilters, setOrderFilters] = useState<OrdersFilters>(EMPTY_FILTERS);
+
+  const filteredOrders = useMemo(
+    () => orders.filter((o) => matchesFilters(o, orderFilters)),
+    [orders, orderFilters]
+  );
 
   const productPageCount = Math.max(1, Math.ceil(products.length / ADMIN_PAGE_SIZE));
-  const orderPageCount = Math.max(1, Math.ceil(orders.length / ADMIN_PAGE_SIZE));
+  const orderPageCount = Math.max(1, Math.ceil(filteredOrders.length / ADMIN_PAGE_SIZE));
 
   useEffect(() => {
     setProductsPage((p) => Math.min(p, productPageCount));
@@ -76,8 +88,12 @@ export default function Admin() {
 
   const ordersPageItems = useMemo(() => {
     const start = (ordersPage - 1) * ADMIN_PAGE_SIZE;
-    return orders.slice(start, start + ADMIN_PAGE_SIZE);
-  }, [orders, ordersPage]);
+    return filteredOrders.slice(start, start + ADMIN_PAGE_SIZE);
+  }, [filteredOrders, ordersPage]);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [orderFilters]);
 
   const loadProducts = async () => {
     try {
@@ -178,7 +194,7 @@ export default function Admin() {
         </motion.div>
 
         <div className="mb-8 flex flex-wrap gap-2">
-          {(['products', 'orders', 'kpis', 'stamps'] as const).map((t) => (
+          {(['products', 'orders', 'kpis', 'coupons', 'stamps'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -195,13 +211,17 @@ export default function Admin() {
                   ? 'Pedidos'
                   : t === 'kpis'
                     ? 'KPIs'
-                    : 'Estampas'}
+                    : t === 'coupons'
+                      ? 'Cupons'
+                      : 'Estampas'}
             </button>
           ))}
         </div>
 
         {tab === 'stamps' ? (
           <StampsTab />
+        ) : tab === 'coupons' ? (
+          <CouponsTab />
         ) : tab === 'kpis' ? (
           loading ? (
             <div className="flex justify-center py-20">
@@ -311,20 +331,33 @@ export default function Admin() {
             </div>
           </>
         ) : (
-          <div className="space-y-4">
-            {orders.length === 0 && (
-              <p className="py-10 text-center font-serif italic text-king-silver/70">
-                Nenhum pedido recebido ainda.
-              </p>
-            )}
-            {ordersPageItems.map((o) => (
-              <OrderCard key={o.id} order={o} onStatusChange={onStatusChange} />
-            ))}
-            <AdminPaginationBar
-              page={ordersPage}
-              totalItems={orders.length}
-              onPageChange={setOrdersPage}
+          <div>
+            <OrdersToolbar
+              orders={orders}
+              filters={orderFilters}
+              onFiltersChange={setOrderFilters}
+              filtered={filteredOrders}
+              totalAll={orders.length}
             />
+            <div className="space-y-4">
+              {orders.length === 0 ? (
+                <p className="py-10 text-center font-serif italic text-king-silver/70">
+                  Nenhum pedido recebido ainda.
+                </p>
+              ) : filteredOrders.length === 0 ? (
+                <p className="py-10 text-center font-serif italic text-king-silver/70">
+                  Nenhum pedido encontrado com os filtros atuais.
+                </p>
+              ) : null}
+              {ordersPageItems.map((o) => (
+                <OrderCard key={o.id} order={o} onStatusChange={onStatusChange} />
+              ))}
+              <AdminPaginationBar
+                page={ordersPage}
+                totalItems={filteredOrders.length}
+                onPageChange={setOrdersPage}
+              />
+            </div>
           </div>
         )}
       </div>

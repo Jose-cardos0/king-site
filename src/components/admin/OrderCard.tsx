@@ -7,19 +7,17 @@ import {
   MapPin,
   Package,
   CreditCard,
+  Tag,
 } from 'lucide-react';
-import type { Order, OrderStatus } from '@/services/orders.service';
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_OPTIONS,
+  type Order,
+  type OrderStatus,
+} from '@/services/orders.service';
 import { formatBRL, formatDate } from '@/utils/format';
 import { openShippingLabel } from '@/utils/printLabel';
 import { cn } from '@/utils/cn';
-
-const STATUS_OPTIONS: OrderStatus[] = [
-  'pendente',
-  'confirmado',
-  'enviado',
-  'entregue',
-  'cancelado',
-];
 
 function onlyDigits(v: string): string {
   return (v || '').replace(/\D/g, '');
@@ -82,6 +80,12 @@ export default function OrderCard({ order, onStatusChange }: Props) {
                 {order.shippingService.name}
               </span>
             )}
+            {order.coupon && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-king-red/40 bg-king-red/10 px-2 py-0.5 text-king-red">
+                <Tag className="h-3 w-3" />#{order.coupon.code} −
+                {order.coupon.discountPercent}%
+              </span>
+            )}
           </p>
         </div>
 
@@ -91,9 +95,9 @@ export default function OrderCard({ order, onStatusChange }: Props) {
             onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
             className="select-king-dark font-mono text-[10px] uppercase tracking-[0.25em]"
           >
-            {STATUS_OPTIONS.map((s) => (
+            {ORDER_STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {ORDER_STATUS_LABELS[s]}
               </option>
             ))}
           </select>
@@ -225,6 +229,14 @@ export default function OrderCard({ order, onStatusChange }: Props) {
                 <dt>Subtotal</dt>
                 <dd>{formatBRL(order.subtotal)}</dd>
               </div>
+              {order.coupon && (order.discount ?? 0) > 0 && (
+                <div className="flex justify-between text-emerald-300">
+                  <dt>
+                    Cupom #{order.coupon.code} (−{order.coupon.discountPercent}%)
+                  </dt>
+                  <dd>− {formatBRL(order.discount ?? 0)}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt>Frete</dt>
                 <dd>

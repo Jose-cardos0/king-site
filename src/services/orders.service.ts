@@ -17,7 +17,36 @@ export type OrderStatus =
   | 'confirmado'
   | 'enviado'
   | 'entregue'
-  | 'cancelado';
+  | 'cancelado'
+  | 'troca'
+  | 'reembolsado';
+
+export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
+  'pendente',
+  'confirmado',
+  'enviado',
+  'entregue',
+  'troca',
+  'reembolsado',
+  'cancelado',
+];
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  pendente: 'Pendente',
+  confirmado: 'Confirmado',
+  enviado: 'Enviado',
+  entregue: 'Entregue',
+  troca: 'Troca',
+  reembolsado: 'Reembolsado',
+  cancelado: 'Cancelado',
+};
+
+export interface OrderCoupon {
+  id: string;
+  code: string;
+  discountPercent: number;
+  discountAmount: number;
+}
 
 export interface OrderItemStamp {
   id: string;
@@ -64,6 +93,8 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   shippingCost: number;
+  discount?: number;
+  coupon?: OrderCoupon | null;
   total: number;
   status: OrderStatus;
   shipping: Shipping;

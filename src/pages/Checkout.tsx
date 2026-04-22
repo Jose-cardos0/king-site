@@ -15,7 +15,9 @@ import { cn } from '@/utils/cn';
 import ShippingQuoteBox from '@/components/checkout/ShippingQuoteBox';
 import StripePaymentForm from '@/components/checkout/StripePaymentForm';
 import PostCheckoutModal from '@/components/checkout/PostCheckoutModal';
+import CouponField, { type AppliedCoupon } from '@/components/checkout/CouponField';
 import type { ShippingOption } from '@/services/checkout.api';
+import { incrementCouponUsage } from '@/services/coupons.service';
 
 export default function Checkout() {
   const { items, subtotal, clear } = useCartStore();
@@ -24,6 +26,7 @@ export default function Checkout() {
   const [step, setStep] = useState<1 | 2>(1);
   const [submitting, setSubmitting] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
   const [post, setPost] = useState<{
     orderId: string;
     total: number;
@@ -43,7 +46,10 @@ export default function Checkout() {
 
   const total = subtotal();
   const shippingCost = selectedShipping?.price ?? 0;
-  const final = total + shippingCost;
+  const discountAmount = coupon
+    ? Math.round(total * coupon.discountPercent) / 100
+    : 0;
+  const final = Math.max(0, total - discountAmount) + shippingCost;
 
   const addressComplete = useMemo(() => {
     const required: (keyof Shipping)[] = [
@@ -105,6 +111,15 @@ export default function Checkout() {
         deliveryDays: selectedShipping.deliveryDays,
         free: selectedShipping.free ?? false,
       };
+      const orderCoupon = coupon
+        ? {
+            id: coupon.id,
+            code: coupon.code,
+            discountPercent: coupon.discountPercent,
+            discountAmount,
+          }
+        : null;
+
       const orderId = await createOrder({
         userId: user.uid,
         userEmail: user.email ?? '',
@@ -120,6 +135,8 @@ export default function Checkout() {
         })),
         subtotal: total,
         shippingCost,
+        discount: discountAmount,
+        coupon: orderCoupon,
         total: final,
         status: 'confirmado',
         shipping,
@@ -128,6 +145,10 @@ export default function Checkout() {
         paymentIntentId,
         paymentStatus: 'paid',
       });
+
+      if (orderCoupon) {
+        void incrementCouponUsage(orderCoupon.id);
+      }
 
       toast.success('Pedido confirmado! A realeza agradece.');
       clear();
@@ -244,12 +265,17 @@ export default function Checkout() {
                   />
                 </div>
 
-                <div className="mt-8">
+                <div className="mt-8 grid gap-4">
                   <ShippingQuoteBox
                     cep={shipping.zip}
                     itemsCount={items.reduce((acc, i) => acc + i.quantity, 0)}
                     selected={selectedShipping}
                     onSelect={setSelectedShipping}
+                  />
+                  <CouponField
+                    applied={coupon}
+                    onApply={setCoupon}
+                    onRemove={() => setCoupon(null)}
                   />
                 </div>
 
@@ -268,6 +294,7 @@ export default function Checkout() {
                 <StripePaymentForm
                   subtotal={total}
                   shippingCost={shippingCost}
+                  discount={discountAmount}
                   total={final}
                   disabled={submitting}
                   onPaid={handlePaid}
@@ -276,6 +303,7 @@ export default function Checkout() {
                     customer: shipping.fullName,
                     shipping_service: selectedShipping?.name ?? '',
                     shipping_zip: shipping.zip,
+                    coupon: coupon?.code ?? '',
                   }}
                 />
 
@@ -331,6 +359,15 @@ export default function Checkout() {
                 <span>Subtotal</span>
                 <span>{formatBRL(total)}</span>
               </div>
+              {coupon && discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-300">
+                  <span>
+                    Cupom <span className="font-mono">#{coupon.code}</span> (−
+                    {coupon.discountPercent}%)
+                  </span>
+                  <span>− {formatBRL(discountAmount)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Frete</span>
                 <span>

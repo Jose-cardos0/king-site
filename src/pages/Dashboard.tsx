@@ -15,6 +15,8 @@ const STATUS_MAP: Record<OrderStatus, { label: string; color: string; step: numb
   confirmado: { label: 'Pagamento confirmado', color: 'text-king-gold', step: 2 },
   enviado: { label: 'Enviado', color: 'text-blue-400', step: 3 },
   entregue: { label: 'Entregue', color: 'text-emerald-400', step: 4 },
+  troca: { label: 'Em troca', color: 'text-amber-400', step: 4 },
+  reembolsado: { label: 'Reembolsado', color: 'text-amber-300', step: 0 },
   cancelado: { label: 'Cancelado', color: 'text-red-500', step: 0 },
 };
 

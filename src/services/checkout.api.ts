@@ -47,6 +47,7 @@ export interface CreatePaymentIntentResponse {
 export function createPaymentIntent(payload: {
   subtotal: number;
   shippingCost: number;
+  discount?: number;
   metadata?: Record<string, string>;
 }): Promise<CreatePaymentIntentResponse> {
   return post('/api/checkout/create-payment-intent', payload);

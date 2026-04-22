@@ -21,11 +21,13 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
     const {
       subtotal,
       shippingCost,
+      discount = 0,
       currency = 'brl',
       metadata = {},
     } = (req.body ?? {}) as {
       subtotal?: number;
       shippingCost?: number;
+      discount?: number;
       currency?: string;
       metadata?: Record<string, string>;
     };
@@ -38,8 +40,13 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'shippingCost inválido' });
       return;
     }
+    const safeDiscount =
+      typeof discount === 'number' && discount > 0 && discount < subtotal
+        ? discount
+        : 0;
 
-    const amountCents = Math.round((subtotal + shippingCost) * 100);
+    const payable = Math.max(0, subtotal - safeDiscount) + shippingCost;
+    const amountCents = Math.round(payable * 100);
     if (amountCents < 50) {
       res.status(400).json({ error: 'Valor mínimo não atingido' });
       return;
@@ -53,6 +60,7 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
         ...metadata,
         subtotal_brl: subtotal.toFixed(2),
         shipping_brl: shippingCost.toFixed(2),
+        discount_brl: safeDiscount.toFixed(2),
       },
     });
 

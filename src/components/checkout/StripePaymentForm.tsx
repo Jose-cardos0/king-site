@@ -43,6 +43,7 @@ type OnPaid = (paymentIntentId: string) => void | Promise<void>;
 type Props = {
   subtotal: number;
   shippingCost: number;
+  discount?: number;
   total: number;
   onPaid: OnPaid;
   metadata?: Record<string, string>;
@@ -57,11 +58,11 @@ export default function StripePaymentForm(props: Props) {
 
   useEffect(() => {
     let cancel = false;
-    const metadataKey = JSON.stringify(props.metadata ?? {});
     setLoading(true);
     createPaymentIntent({
       subtotal: props.subtotal,
       shippingCost: props.shippingCost,
+      discount: props.discount ?? 0,
       metadata: props.metadata,
     })
       .then((r) => {
@@ -80,7 +81,7 @@ export default function StripePaymentForm(props: Props) {
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.subtotal, props.shippingCost]);
+  }, [props.subtotal, props.shippingCost, props.discount]);
 
   if (loading) {
     return (
