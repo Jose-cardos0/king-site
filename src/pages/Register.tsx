@@ -23,7 +23,7 @@ export default function Register() {
     setLoading(true);
     try {
       await registerWithEmail(email, password, name);
-      toast.success('Conta criada. Vista-se com o rei.');
+      toast.success('Conta criada. Vista-se com o Filho do Rei.');
       navigate('/');
     } catch (err) {
       const msg = (err as { code?: string })?.code ?? '';
@@ -43,7 +43,7 @@ export default function Register() {
     setLoading(true);
     try {
       await loginWithGoogle();
-      toast.success('Conta criada. Bem-vindo, rei.');
+      toast.success('Conta criada. Bem-vindo, Filho do Rei.');
       navigate('/');
     } catch {
       toast.error('Erro ao cadastrar com Google');

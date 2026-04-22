@@ -15,9 +15,9 @@ export interface CartItem {
   image: string;
   size: ProductSize;
   quantity: number;
-  /** Estampa das costas (arte da pasta `estampas`). */
+  /** Estampa das costas (catálogo Firebase / admin). */
   stamp?: CartItemStamp | null;
-  /** Estampa da frente — uma das 3 logos oficiais. */
+  /** Estampa da frente — logos oficiais e/ou artes enviadas no admin. */
   stampFront?: CartItemStamp | null;
 }
 

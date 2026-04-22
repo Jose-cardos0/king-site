@@ -28,6 +28,7 @@ export default function MeasureGuideModal({ open, onClose }: Props) {
       {open && (
         <motion.div
           key="measure-guide"
+          data-king-modal
           role="dialog"
           aria-modal="true"
           aria-label="Guia de medidas"

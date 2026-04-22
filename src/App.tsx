@@ -25,6 +25,7 @@ import NotFound from '@/pages/NotFound';
 
 import { useAuthStore } from '@/store/useAuthStore';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useStampsStore } from '@/store/useStampsStore';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AdminRoute from '@/components/auth/AdminRoute';
 
@@ -33,11 +34,16 @@ function App() {
   const location = useLocation();
   const initAuth = useAuthStore((s) => s.init);
   const theme = useThemeStore((s) => s.theme);
+  const fetchStamps = useStampsStore((s) => s.fetch);
 
   useEffect(() => {
     const unsub = initAuth();
     return () => unsub();
   }, [initAuth]);
+
+  useEffect(() => {
+    void fetchStamps();
+  }, [fetchStamps]);
 
   useEffect(() => {
     const root = document.documentElement;

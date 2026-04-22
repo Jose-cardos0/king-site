@@ -42,7 +42,7 @@ export default function Cart() {
             <KingLogo variant="bordo" className="h-24 w-auto opacity-35 sm:h-28" />
             <h2 className="heading-display text-2xl text-king-fg">Sua sacola está vazia</h2>
             <p className="max-w-md font-serif italic text-king-silver/70">
-              Um rei não anda sem suas vestes. Vá até a coleção e encontre a peça que te pertence.
+              Filho do Rei não anda sem suas vestes. Vá até a coleção e encontre a peça que te pertence.
             </p>
             <Link to="/produtos">
               <GlowButton>

@@ -170,6 +170,23 @@
     border-color: rgba(0, 0, 0, 0.2);
   }
 
+  /**
+   * Modais em portal (z > cursor custom) ficam por cima do ponto animado.
+   * Em `button` o base layer usa `cursor: none`, ficando invisível — restauramos aqui.
+   */
+  [data-king-modal] {
+    cursor: auto;
+  }
+  [data-king-modal] button,
+  [data-king-modal] select,
+  [data-king-modal] label {
+    cursor: pointer;
+  }
+  [data-king-modal] input:not([type='checkbox']):not([type='radio']),
+  [data-king-modal] textarea {
+    cursor: text;
+  }
+
   .text-glow {
     text-shadow: 0 0 18px rgba(220, 20, 60, 0.55),
       0 0 40px rgba(220, 20, 60, 0.25);
@@ -322,6 +339,43 @@
   }
   .mask-fade-r {
     mask-image: linear-gradient(to right, black 70%, transparent);
+  }
+
+  /** PDP — CTA “Selecionar estampa (costas)”: brilho que percorre a moldura. */
+  .pdp-stamp-cta-sweep {
+    padding: 2px;
+    border-radius: 0.5rem;
+    background: linear-gradient(
+      105deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(220, 20, 60, 0.35) 38%,
+      rgba(255, 255, 255, 0.55) 50%,
+      rgba(220, 20, 60, 0.35) 62%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    background-size: 260% 100%;
+    animation: pdpStampCtaSweep 2.85s ease-in-out infinite;
+  }
+  .light .pdp-stamp-cta-sweep {
+    background: linear-gradient(
+      105deg,
+      rgba(0, 0, 0, 0.08) 0%,
+      rgba(185, 28, 28, 0.5) 38%,
+      rgba(255, 255, 255, 0.9) 50%,
+      rgba(185, 28, 28, 0.5) 62%,
+      rgba(0, 0, 0, 0.08) 100%
+    );
+    background-size: 260% 100%;
+    animation: pdpStampCtaSweep 2.85s ease-in-out infinite;
+  }
+}
+
+@keyframes pdpStampCtaSweep {
+  0% {
+    background-position: 130% 50%;
+  }
+  100% {
+    background-position: -30% 50%;
   }
 }
 

@@ -1,19 +1,20 @@
 import type { Product } from '@/services/products.service';
-import { STAMPS } from '@/assets/estampas';
-import { FRONT_LOGO_STAMPS } from '@/assets/logos';
+import { useStampsStore } from '@/store/useStampsStore';
 
-/** Costas: campo ausente = todas as estampas da pasta; `[]` = nenhuma; array = só esses ids. */
+/** Costas: campo ausente = todas as estampas do catálogo (Firebase); `[]` = nenhuma; array = só esses ids. */
 export function getEffectiveBackStampIds(product: Product): string[] {
+  const catalog = useStampsStore.getState().mergedBack;
   const raw = product.allowedBackStampIds;
-  if (raw === undefined) return STAMPS.map((s) => s.id);
-  return raw.filter((id) => STAMPS.some((s) => s.id === id));
+  if (raw === undefined) return catalog.map((s) => s.id);
+  return raw.filter((id) => catalog.some((s) => s.id === id));
 }
 
-/** Frente: ausente = os 3 logos; `[]` = nenhum; array = subset. */
+/** Frente: ausente = logos oficiais + estampas de frente no Firebase; `[]` = nenhum; array = subset. */
 export function getEffectiveFrontStampIds(product: Product): string[] {
+  const catalog = useStampsStore.getState().mergedFront;
   const raw = product.allowedFrontStampIds;
-  if (raw === undefined) return FRONT_LOGO_STAMPS.map((s) => s.id);
-  return raw.filter((id) => FRONT_LOGO_STAMPS.some((s) => s.id === id));
+  if (raw === undefined) return catalog.map((s) => s.id);
+  return raw.filter((id) => catalog.some((s) => s.id === id));
 }
 
 export function productAllowsBackStamps(product: Product): boolean {

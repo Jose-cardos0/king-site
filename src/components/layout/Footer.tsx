@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FaInstagram, FaTiktok, FaWhatsapp, FaYoutube } from 'react-icons/fa';
 import { openWhatsApp, buildSupportMessage } from '@/utils/whatsapp';
 import { useThemeStore } from '@/store/useThemeStore';
+import { cn } from '@/utils/cn';
 import KingLogo from '@/components/ui/KingLogo';
 import MeasureGuideModal from '@/components/products/MeasureGuideModal';
 
@@ -26,8 +27,13 @@ export default function Footer() {
           <p className="mb-4 font-serif italic text-sm tracking-[0.3em] text-king-red">
             · Ad Majorem Dei Gloriam ·
           </p>
-          <h3 className="heading-display text-5xl md:text-8xl text-gradient-red">
-            VISTA-SE COM O REI
+          <h3
+            className={cn(
+              'heading-display text-5xl md:text-8xl',
+              theme === 'light' ? 'text-gradient-red' : 'text-king-fg'
+            )}
+          >
+            VISTA-SE COM O FILHO DO REI
           </h3>
           <div className="mx-auto mt-6 h-px w-24 bg-gradient-to-r from-transparent via-king-red/40 to-transparent" />
         </motion.div>

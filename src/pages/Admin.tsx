@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -23,11 +23,13 @@ import {
 } from '@/services/products.service';
 import { useProductsStore } from '@/store/useProductsStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useThemeStore } from '@/store/useThemeStore';
+import { useStampsStore } from '@/store/useStampsStore';
 import { uploadProductGalleryImage } from '@/services/storage.service';
-import { STAMPS } from '@/assets/estampas';
+import StampsTab from '@/components/admin/StampsTab';
+import AdminPaginationBar, { ADMIN_PAGE_SIZE } from '@/components/admin/AdminPaginationBar';
 import {
   FRONT_LOGO_PRETO_ID,
-  FRONT_LOGO_STAMPS,
   kingLogoPretoOnDarkImgClass,
 } from '@/assets/logos';
 import { listAllOrders, updateOrderStatus, type Order, type OrderStatus } from '@/services/orders.service';
@@ -52,11 +54,34 @@ const STATUS_OPTIONS: OrderStatus[] = [
 ];
 
 export default function Admin() {
-  const [tab, setTab] = useState<'products' | 'orders'>('products');
+  const [tab, setTab] = useState<'products' | 'orders' | 'stamps'>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ mode: 'create' | 'edit'; product?: Product } | null>(null);
+  const [productsPage, setProductsPage] = useState(1);
+  const [ordersPage, setOrdersPage] = useState(1);
+
+  const productPageCount = Math.max(1, Math.ceil(products.length / ADMIN_PAGE_SIZE));
+  const orderPageCount = Math.max(1, Math.ceil(orders.length / ADMIN_PAGE_SIZE));
+
+  useEffect(() => {
+    setProductsPage((p) => Math.min(p, productPageCount));
+  }, [productPageCount]);
+
+  useEffect(() => {
+    setOrdersPage((p) => Math.min(p, orderPageCount));
+  }, [orderPageCount]);
+
+  const productsPageItems = useMemo(() => {
+    const start = (productsPage - 1) * ADMIN_PAGE_SIZE;
+    return products.slice(start, start + ADMIN_PAGE_SIZE);
+  }, [products, productsPage]);
+
+  const ordersPageItems = useMemo(() => {
+    const start = (ordersPage - 1) * ADMIN_PAGE_SIZE;
+    return orders.slice(start, start + ADMIN_PAGE_SIZE);
+  }, [orders, ordersPage]);
 
   const loadProducts = async () => {
     try {
@@ -109,7 +134,7 @@ export default function Admin() {
 
   useEffect(() => {
     if (tab === 'products') loadProducts();
-    else loadOrders();
+    else if (tab === 'orders') loadOrders();
   }, [tab]);
 
   const onDelete = async (id: string) => {
@@ -156,8 +181,8 @@ export default function Admin() {
           </p>
         </motion.div>
 
-        <div className="mb-8 flex gap-2">
-          {(['products', 'orders'] as const).map((t) => (
+        <div className="mb-8 flex flex-wrap gap-2">
+          {(['products', 'orders', 'stamps'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -168,12 +193,14 @@ export default function Admin() {
                   : 'border-white/10 text-king-silver hover:border-king-red'
               )}
             >
-              {t === 'products' ? 'Produtos' : 'Pedidos'}
+              {t === 'products' ? 'Produtos' : t === 'orders' ? 'Pedidos' : 'Estampas'}
             </button>
           ))}
         </div>
 
-        {loading ? (
+        {tab === 'stamps' ? (
+          <StampsTab />
+        ) : loading ? (
           <div className="flex justify-center py-20">
             <div className="spinner-crown" />
           </div>
@@ -212,7 +239,7 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p) => (
+                  {productsPageItems.map((p) => (
                     <tr
                       key={p.id}
                       className="border-t border-white/5 transition hover:bg-white/[0.02]"
@@ -266,6 +293,11 @@ export default function Admin() {
                   )}
                 </tbody>
               </table>
+              <AdminPaginationBar
+                page={productsPage}
+                totalItems={products.length}
+                onPageChange={setProductsPage}
+              />
             </div>
           </>
         ) : (
@@ -275,7 +307,7 @@ export default function Admin() {
                 Nenhum pedido recebido ainda.
               </p>
             )}
-            {orders.map((o) => (
+            {ordersPageItems.map((o) => (
               <motion.div
                 key={o.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -309,6 +341,11 @@ export default function Admin() {
                 </select>
               </motion.div>
             ))}
+            <AdminPaginationBar
+              page={ordersPage}
+              totalItems={orders.length}
+              onPageChange={setOrdersPage}
+            />
           </div>
         )}
       </div>
@@ -384,29 +421,33 @@ function ProductModal({
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const authUser = useAuthStore((s) => s.user);
+  const isLight = useThemeStore((s) => s.theme === 'light');
+  const resumeCard = cn(
+    'rounded-md border px-4 py-3',
+    isLight ? 'border-black/[0.08] bg-white shadow-sm' : 'border-neutral-900 bg-king-black/35'
+  );
   const [saving, setSaving] = useState(false);
 
   const [backScope, setBackScope] = useState<StampScope>(() => backScopeFromProduct(product));
   const [backPick, setBackPick] = useState<Set<string>>(() => {
+    const cat = useStampsStore.getState().mergedBack;
     if (product?.allowedBackStampIds && product.allowedBackStampIds.length > 0) {
-      return new Set(
-        product.allowedBackStampIds.filter((id) => STAMPS.some((s) => s.id === id))
-      );
+      return new Set(product.allowedBackStampIds.filter((id) => cat.some((s) => s.id === id)));
     }
-    return new Set(STAMPS.map((s) => s.id));
+    return new Set(cat.map((s) => s.id));
   });
 
   const [frontScope, setFrontScope] = useState<StampScope>(() => frontScopeFromProduct(product));
   const [frontPick, setFrontPick] = useState<Set<string>>(() => {
+    const cat = useStampsStore.getState().mergedFront;
     if (product?.allowedFrontStampIds && product.allowedFrontStampIds.length > 0) {
-      return new Set(
-        product.allowedFrontStampIds.filter((id) =>
-          FRONT_LOGO_STAMPS.some((s) => s.id === id)
-        )
-      );
+      return new Set(product.allowedFrontStampIds.filter((id) => cat.some((s) => s.id === id)));
     }
-    return new Set(FRONT_LOGO_STAMPS.map((s) => s.id));
+    return new Set(cat.map((s) => s.id));
   });
+
+  const mergedBack = useStampsStore((s) => s.mergedBack);
+  const mergedFront = useStampsStore((s) => s.mergedFront);
 
   const [wizardStep, setWizardStep] = useState<ProductWizardStep>(1);
 
@@ -565,7 +606,7 @@ function ProductModal({
         : `${backPick.size} artes selecionadas`;
   const frontSummaryText =
     frontScope === 'all'
-      ? 'Os 3 logos (bordô, branco, preto)'
+      ? `Todos os logos do catálogo (${mergedFront.length} opções)`
       : frontScope === 'none'
         ? 'Sem logo no peito'
         : `${frontPick.size} logo(s) selecionado(s)`;
@@ -637,7 +678,10 @@ function ProductModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm"
+        className={cn(
+          'fixed inset-0 z-[80] backdrop-blur-sm',
+          isLight ? 'bg-black/45' : 'bg-black/80'
+        )}
       />
       <motion.div
         initial={{ opacity: 0 }}
@@ -647,9 +691,19 @@ function ProductModal({
         role="dialog"
         aria-modal="true"
         data-lenis-prevent
-        className="fixed left-1/2 top-1/2 z-[81] flex h-[min(90dvh,calc(100dvh-1.5rem))] w-[90vw] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-neutral-900 bg-king-jet/95 shadow-[0_24px_100px_rgba(0,0,0,0.75)] backdrop-blur-md"
+        className={cn(
+          'fixed left-1/2 top-1/2 z-[81] flex h-[min(90dvh,calc(100dvh-1.5rem))] w-[90vw] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border backdrop-blur-md',
+          isLight
+            ? 'border-black/[0.08] bg-white shadow-[0_24px_80px_rgba(0,0,0,0.1)]'
+            : 'border-neutral-900 bg-king-jet/95 shadow-[0_24px_100px_rgba(0,0,0,0.75)]'
+        )}
       >
-        <header className="shrink-0 border-b border-neutral-900 bg-king-black/40 px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-4">
+        <header
+          className={cn(
+            'shrink-0 border-b px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-4',
+            isLight ? 'border-black/[0.06] bg-stone-50/95' : 'border-neutral-900 bg-king-black/40'
+          )}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h3 className="heading-display text-2xl text-king-fg sm:text-3xl">
@@ -664,7 +718,10 @@ function ProductModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 items-center justify-center border border-neutral-800 text-king-silver transition hover:border-king-red hover:text-king-fg"
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center border text-king-silver transition hover:border-king-red hover:text-king-fg',
+                isLight ? 'border-black/10 bg-white/80' : 'border-neutral-800'
+              )}
               aria-label="Fechar"
             >
               <HiOutlineX className="text-lg" />
@@ -696,7 +753,9 @@ function ProductModal({
                             'border-king-red/55 bg-king-red/[0.12] text-king-red hover:border-king-red hover:bg-king-red/20',
                           !done &&
                             !active &&
-                            'border-neutral-700 bg-king-black/80 text-king-silver/40 shadow-inner',
+                            (isLight
+                              ? 'border-black/10 bg-stone-100 text-king-silver/60'
+                              : 'border-neutral-700 bg-king-black/80 text-king-silver/40 shadow-inner'),
                           canGoBack && 'cursor-pointer',
                           locked && 'cursor-not-allowed opacity-35'
                         )}
@@ -723,7 +782,11 @@ function ProductModal({
                         role="presentation"
                         className={cn(
                           'mt-[19px] h-0.5 w-4 shrink-0 rounded-full sm:mt-[21px] sm:h-[3px] sm:w-8 md:w-14',
-                          wizardStep > step ? 'bg-gradient-to-r from-king-red/80 to-king-red/30' : 'bg-white/[0.1]'
+                          wizardStep > step
+                            ? 'bg-gradient-to-r from-king-red/80 to-king-red/30'
+                            : isLight
+                              ? 'bg-black/[0.1]'
+                              : 'bg-white/[0.1]'
                         )}
                       />
                     )}
@@ -742,6 +805,7 @@ function ProductModal({
             {wizardStep === 1 && (
               <div className="flex flex-col gap-7 md:gap-8">
                 <ProductModalSection
+                  isLight={isLight}
                   title="Dados do produto"
                   subtitle="Nome, preços, estoque, categoria e tamanhos."
                 >
@@ -805,7 +869,9 @@ function ProductModal({
                             'h-12 min-w-[52px] rounded-md border px-4 font-mono text-sm transition sm:h-[3.25rem] sm:min-w-[3.5rem]',
                             form.sizes.includes(s)
                               ? 'border-king-red bg-king-red text-king-bone shadow-glow-red/30'
-                              : 'border-neutral-700 text-king-silver hover:border-neutral-500'
+                              : isLight
+                                ? 'border-black/12 bg-white text-king-fg hover:border-king-red/45'
+                                : 'border-neutral-700 text-king-silver hover:border-neutral-500'
                           )}
                         >
                           {s}
@@ -820,9 +886,10 @@ function ProductModal({
             {wizardStep === 2 && (
               <div className="flex flex-col gap-7 md:gap-8">
                 <ProductModalSection
+                  isLight={isLight}
                   title="Galeria"
-                subtitle="Upload para Storage (products/gallery/) ou URL externa. A 1ª imagem é a capa."
-              >
+                  subtitle="Upload para Storage (products/gallery/) ou URL externa. A 1ª imagem é a capa."
+                >
                 <input
                   ref={galleryInputRef}
                   type="file"
@@ -836,7 +903,12 @@ function ProductModal({
                     type="button"
                     disabled={uploadingGallery}
                     onClick={() => galleryInputRef.current?.click()}
-                    className="inline-flex items-center justify-center gap-2 border border-king-red/70 bg-king-red/15 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.25em] text-king-bone transition hover:bg-king-red/25 disabled:opacity-50"
+                    className={cn(
+                      'inline-flex items-center justify-center gap-2 border px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.25em] transition disabled:opacity-50',
+                      isLight
+                        ? 'border-king-red/35 bg-king-red/[0.08] text-king-red hover:bg-king-red/15'
+                        : 'border-king-red/70 bg-king-red/15 text-king-bone hover:bg-king-red/25'
+                    )}
                   >
                     <HiOutlineUpload className="text-lg" />
                     {uploadingGallery ? 'Enviando…' : 'Enviar imagens'}
@@ -862,7 +934,10 @@ function ProductModal({
                   <button
                     type="button"
                     onClick={addExternalImageUrl}
-                    className="shrink-0 border border-neutral-800 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-king-silver transition hover:border-king-red hover:text-king-fg"
+                    className={cn(
+                      'shrink-0 border px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-king-silver transition hover:border-king-red hover:text-king-fg',
+                      isLight ? 'border-black/12 bg-white' : 'border-neutral-800'
+                    )}
                   >
                     Adicionar URL
                   </button>
@@ -872,10 +947,22 @@ function ProductModal({
                     {imageUrls.map((url, idx) => (
                       <li
                         key={`${url}-${idx}`}
-                        className="group relative aspect-[3/4] w-full overflow-hidden rounded-sm border border-neutral-900 bg-king-black/50"
+                        className={cn(
+                          'group relative aspect-[3/4] w-full overflow-hidden rounded-sm border',
+                          isLight
+                            ? 'border-black/10 bg-stone-100'
+                            : 'border-neutral-900 bg-king-black/50'
+                        )}
                       >
                         <img src={url} alt="" className="h-full w-full object-cover" />
-                        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-king-black via-king-black/90 to-transparent px-1 py-1 pt-5">
+                        <div
+                          className={cn(
+                            'absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t to-transparent px-1 py-1 pt-5',
+                            isLight
+                              ? 'from-black/55 via-black/25'
+                              : 'from-king-black via-king-black/90'
+                          )}
+                        >
                           <span className="font-mono text-[7px] text-king-silver sm:text-[8px]">
                             {idx === 0 ? 'Capa' : `#${idx + 1}`}
                           </span>
@@ -899,31 +986,35 @@ function ProductModal({
             {wizardStep === 3 && (
               <div className="flex flex-col gap-7 md:gap-8">
               <ProductModalSection
+                isLight={isLight}
                 title="Estampas · costas"
-                subtitle="Arquivos da pasta estampas. Controle o que o cliente pode escolher no verso."
+                subtitle="Catálogo de costas (Firebase). Controle o que o cliente pode escolher no verso."
               >
                 <div className="grid gap-2 sm:grid-cols-1">
                   <StampScopeRow
+                    isLight={isLight}
                     name="admin-back-stamp-scope"
                     label="Todas as artes do catálogo"
                     checked={backScope === 'all'}
                     onChange={() => {
                       setBackScope('all');
-                      setBackPick(new Set(STAMPS.map((s) => s.id)));
+                      setBackPick(new Set(mergedBack.map((s) => s.id)));
                     }}
                   />
                   <StampScopeRow
+                    isLight={isLight}
                     name="admin-back-stamp-scope"
                     label="Somente artes selecionadas abaixo"
                     checked={backScope === 'subset'}
                     onChange={() => {
                       setBackScope('subset');
                       setBackPick((prev) =>
-                        prev.size === 0 ? new Set(STAMPS.map((s) => s.id)) : prev
+                        prev.size === 0 ? new Set(mergedBack.map((s) => s.id)) : prev
                       );
                     }}
                   />
                   <StampScopeRow
+                    isLight={isLight}
                     name="admin-back-stamp-scope"
                     label="Não oferecer estampa no verso"
                     checked={backScope === 'none'}
@@ -933,12 +1024,17 @@ function ProductModal({
                 {backScope === 'subset' && (
                   <div
                     data-lenis-prevent
-                    className="mt-4 max-h-[min(30rem,55vh)] overflow-y-auto overscroll-y-contain rounded-sm border border-neutral-900 bg-king-black/45 p-3 sm:max-h-[min(34rem,58vh)]"
+                    className={cn(
+                      'mt-4 max-h-[min(30rem,55vh)] overflow-y-auto overscroll-y-contain rounded-sm border p-3 sm:max-h-[min(34rem,58vh)]',
+                      isLight
+                        ? 'border-black/[0.08] bg-stone-50/95'
+                        : 'border-neutral-900 bg-king-black/45'
+                    )}
                   >
                     <div className="mb-3 flex flex-wrap gap-3">
                       <button
                         type="button"
-                        onClick={() => setBackPick(new Set(STAMPS.map((s) => s.id)))}
+                        onClick={() => setBackPick(new Set(mergedBack.map((s) => s.id)))}
                         className="font-mono text-[9px] uppercase tracking-[0.2em] text-king-silver underline-offset-2 hover:text-king-fg hover:underline"
                       >
                         Marcar todas
@@ -952,19 +1048,29 @@ function ProductModal({
                       </button>
                     </div>
                     <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-11">
-                      {STAMPS.map((s) => {
+                      {mergedBack.map((s) => {
                         const on = backPick.has(s.id);
                         return (
                           <label
                             key={s.id}
                             className={cn(
-                              'group relative flex cursor-pointer flex-col overflow-hidden rounded-md border bg-king-black/40 text-left transition',
+                              'group relative flex cursor-pointer flex-col overflow-hidden rounded-md border text-left transition',
                               on
-                                ? 'border-king-red ring-1 ring-king-red/35'
-                                : 'border-neutral-800 hover:border-neutral-600'
+                                ? cn(
+                                    'border-king-red ring-1 ring-king-red/35',
+                                    isLight ? 'bg-white' : 'bg-king-black/40'
+                                  )
+                                : isLight
+                                  ? 'border-black/10 bg-white hover:border-black/20'
+                                  : 'border-neutral-800 bg-king-black/40 hover:border-neutral-600'
                             )}
                           >
-                            <div className="relative aspect-[4/5] w-full bg-king-black/60 p-1">
+                            <div
+                              className={cn(
+                                'relative aspect-[4/5] w-full p-1',
+                                isLight ? 'bg-stone-100' : 'bg-king-black/60'
+                              )}
+                            >
                               <img
                                 src={s.src}
                                 alt=""
@@ -975,14 +1081,29 @@ function ProductModal({
                                 type="checkbox"
                                 checked={on}
                                 onChange={() => toggleBackStamp(s.id)}
-                                className="absolute left-1 top-1 h-3 w-3 rounded border border-neutral-600 bg-king-black/80 accent-king-red shadow-sm sm:left-1.5 sm:top-1.5 sm:h-3.5 sm:w-3.5"
+                                className={cn(
+                                  'absolute left-1 top-1 h-3 w-3 rounded border accent-king-red shadow-sm sm:left-1.5 sm:top-1.5 sm:h-3.5 sm:w-3.5',
+                                  isLight
+                                    ? 'border-black/20 bg-white'
+                                    : 'border-neutral-600 bg-king-black/80'
+                                )}
                                 aria-label={s.name}
                               />
-                              <span className="pointer-events-none absolute right-0.5 top-0.5 max-w-[min(100%,3.2rem)] truncate rounded bg-king-black/75 px-0.5 py-0.5 font-mono text-[6px] uppercase tracking-[0.12em] text-king-red sm:text-[7px]">
+                              <span
+                                className={cn(
+                                  'pointer-events-none absolute right-0.5 top-0.5 max-w-[min(100%,3.2rem)] truncate rounded px-0.5 py-0.5 font-mono text-[6px] uppercase tracking-[0.12em] text-king-red sm:text-[7px]',
+                                  isLight ? 'bg-white/90' : 'bg-king-black/75'
+                                )}
+                              >
                                 {s.category}
                               </span>
                             </div>
-                            <div className="border-t border-white/5 px-1 py-1">
+                            <div
+                              className={cn(
+                                'border-t px-1 py-1',
+                                isLight ? 'border-black/[0.06]' : 'border-white/5'
+                              )}
+                            >
                               <span className="line-clamp-2 font-mono text-[6px] uppercase leading-tight tracking-[0.08em] text-king-silver sm:text-[7px]">
                                 {s.name}
                               </span>
@@ -996,31 +1117,35 @@ function ProductModal({
               </ProductModalSection>
 
               <ProductModalSection
+                isLight={isLight}
                 title="Estampas · frente"
                 subtitle="Logos KING no peito — escolha o conjunto permitido."
               >
                 <div className="grid gap-2">
                   <StampScopeRow
+                    isLight={isLight}
                     name="admin-front-stamp-scope"
-                    label="Os 3 logos (bordô, branco, preto)"
+                    label="Todos os logos do catálogo (oficiais + Firebase)"
                     checked={frontScope === 'all'}
                     onChange={() => {
                       setFrontScope('all');
-                      setFrontPick(new Set(FRONT_LOGO_STAMPS.map((s) => s.id)));
+                      setFrontPick(new Set(mergedFront.map((s) => s.id)));
                     }}
                   />
                   <StampScopeRow
+                    isLight={isLight}
                     name="admin-front-stamp-scope"
                     label="Somente logos selecionados"
                     checked={frontScope === 'subset'}
                     onChange={() => {
                       setFrontScope('subset');
                       setFrontPick((prev) =>
-                        prev.size === 0 ? new Set(FRONT_LOGO_STAMPS.map((s) => s.id)) : prev
+                        prev.size === 0 ? new Set(mergedFront.map((s) => s.id)) : prev
                       );
                     }}
                   />
                   <StampScopeRow
+                    isLight={isLight}
                     name="admin-front-stamp-scope"
                     label="Não oferecer logo no peito"
                     checked={frontScope === 'none'}
@@ -1028,8 +1153,15 @@ function ProductModal({
                   />
                 </div>
                 {frontScope === 'subset' && (
-                  <div className="mt-4 grid grid-cols-3 gap-2 rounded-sm border border-neutral-900 bg-king-black/45 p-2 sm:max-w-[min(100%,26rem)] sm:mx-auto sm:grid-cols-3 sm:p-3">
-                    {FRONT_LOGO_STAMPS.map((s) => {
+                  <div
+                    className={cn(
+                      'mt-4 grid grid-cols-3 gap-2 rounded-sm border p-2 sm:max-w-[min(100%,26rem)] sm:mx-auto sm:grid-cols-3 sm:p-3',
+                      isLight
+                        ? 'border-black/[0.08] bg-stone-50/95'
+                        : 'border-neutral-900 bg-king-black/45'
+                    )}
+                  >
+                    {mergedFront.map((s) => {
                       const on = frontPick.has(s.id);
                       return (
                         <label
@@ -1038,17 +1170,26 @@ function ProductModal({
                             'flex cursor-pointer flex-col overflow-hidden rounded-md border transition',
                             on
                               ? 'border-king-red ring-1 ring-king-red/35'
-                              : 'border-neutral-800 hover:border-neutral-600'
+                              : isLight
+                                ? 'border-black/10 bg-white hover:border-black/20'
+                                : 'border-neutral-800 hover:border-neutral-600'
                           )}
                         >
-                          <div className="relative flex h-14 items-center justify-center bg-king-black/60 px-2 py-1.5 sm:h-16">
+                          <div
+                            className={cn(
+                              'relative flex h-14 items-center justify-center px-2 py-1.5 sm:h-16',
+                              isLight ? 'bg-stone-100' : 'bg-king-black/60'
+                            )}
+                          >
                             <img
                               src={s.src}
                               alt=""
                               loading="lazy"
                               className={cn(
                                 'max-h-[2.75rem] max-w-full object-contain sm:max-h-[3rem]',
-                                s.id === FRONT_LOGO_PRETO_ID ? kingLogoPretoOnDarkImgClass : ''
+                                s.id === FRONT_LOGO_PRETO_ID && !isLight
+                                  ? kingLogoPretoOnDarkImgClass
+                                  : ''
                               )}
                             />
                             <input
@@ -1059,7 +1200,12 @@ function ProductModal({
                               aria-label={s.name}
                             />
                           </div>
-                          <div className="border-t border-white/5 px-2 py-1.5">
+                          <div
+                            className={cn(
+                              'border-t px-2 py-1.5',
+                              isLight ? 'border-black/[0.06]' : 'border-white/5'
+                            )}
+                          >
                             <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-king-fg">
                               {s.name}
                             </span>
@@ -1076,6 +1222,7 @@ function ProductModal({
             {wizardStep === 4 && (
               <div className="flex flex-col gap-7 md:gap-8">
                 <ProductModalSection
+                  isLight={isLight}
                   title="Descrição"
                   subtitle="Texto completo na página do produto na loja."
                 >
@@ -1087,7 +1234,14 @@ function ProductModal({
                   />
                 </ProductModalSection>
 
-                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-900 bg-king-black/30 px-4 py-3">
+                <label
+                  className={cn(
+                    'flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3',
+                    isLight
+                      ? 'border-black/[0.08] bg-stone-50'
+                      : 'border-neutral-900 bg-king-black/30'
+                  )}
+                >
                   <input
                     type="checkbox"
                     checked={form.featured ?? false}
@@ -1100,59 +1254,60 @@ function ProductModal({
                 </label>
 
                 <ProductModalSection
+                  isLight={isLight}
                   title="Resumo antes de salvar"
                   subtitle="Confira tudo abaixo. Use “Salvar produto” quando estiver pronto."
                 >
                   <dl className="grid gap-4 font-mono text-[11px] uppercase tracking-[0.16em] text-king-silver sm:grid-cols-2">
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
+                    <div className={resumeCard}>
                       <dt className="text-king-silver/55">Nome</dt>
                       <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {form.name?.trim() || '—'}
                       </dd>
                     </div>
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
+                    <div className={resumeCard}>
                       <dt className="text-king-silver/55">Preço</dt>
                       <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {formatBRL(form.price)}
                       </dd>
                     </div>
                     {form.oldPrice != null && form.oldPrice > 0 && (
-                      <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
+                      <div className={resumeCard}>
                         <dt className="text-king-silver/55">Preço antigo</dt>
                         <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                           {formatBRL(form.oldPrice)}
                         </dd>
                       </div>
                     )}
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
+                    <div className={resumeCard}>
                       <dt className="text-king-silver/55">Estoque</dt>
                       <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">{form.stock}</dd>
                     </div>
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3">
+                    <div className={resumeCard}>
                       <dt className="text-king-silver/55">Categoria</dt>
                       <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {PRODUCT_CATEGORY_LABELS[form.category]}
                       </dd>
                     </div>
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
+                    <div className={cn(resumeCard, 'sm:col-span-2')}>
                       <dt className="text-king-silver/55">Tamanhos</dt>
                       <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {form.sizes.length ? form.sizes.join(', ') : '—'}
                       </dd>
                     </div>
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
+                    <div className={cn(resumeCard, 'sm:col-span-2')}>
                       <dt className="text-king-silver/55">Imagens</dt>
                       <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
                         {galleryCount} na galeria
                       </dd>
                     </div>
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
+                    <div className={cn(resumeCard, 'sm:col-span-2')}>
                       <dt className="text-king-silver/55">Estampas · costas</dt>
                       <dd className="mt-1 font-serif text-sm normal-case tracking-normal text-king-fg">
                         {backSummaryText}
                       </dd>
                     </div>
-                    <div className="rounded-md border border-neutral-900 bg-king-black/35 px-4 py-3 sm:col-span-2">
+                    <div className={cn(resumeCard, 'sm:col-span-2')}>
                       <dt className="text-king-silver/55">Estampas · frente</dt>
                       <dd className="mt-1 font-serif text-sm normal-case tracking-normal text-king-fg">
                         {frontSummaryText}
@@ -1165,7 +1320,12 @@ function ProductModal({
           </div>
         </div>
 
-        <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-neutral-900 bg-king-black/50 px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4">
+        <footer
+          className={cn(
+            'flex shrink-0 flex-wrap items-center justify-between gap-3 border-t px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4',
+            isLight ? 'border-black/[0.06] bg-stone-50/98' : 'border-neutral-900 bg-king-black/50'
+          )}
+        >
           <button
             type="button"
             onClick={onClose}
@@ -1178,7 +1338,12 @@ function ProductModal({
               <button
                 type="button"
                 onClick={goPrev}
-                className="border border-neutral-800 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver transition hover:border-king-bone hover:text-king-fg"
+                className={cn(
+                  'border px-4 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver transition hover:text-king-fg',
+                  isLight
+                    ? 'border-black/10 bg-white hover:border-king-red/40'
+                    : 'border-neutral-800 hover:border-king-bone'
+                )}
               >
                 Anterior
               </button>
@@ -1203,14 +1368,28 @@ function ProductModalSection({
   title,
   subtitle,
   children,
+  isLight = false,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  isLight?: boolean;
 }) {
   return (
-    <section className="rounded-xl border border-neutral-900 bg-king-black/30 p-5 sm:p-7 md:p-8">
-      <div className="mb-5 border-b border-neutral-900/70 pb-4">
+    <section
+      className={cn(
+        'rounded-xl border p-5 sm:p-7 md:p-8',
+        isLight
+          ? 'border-black/[0.08] bg-stone-50/90 shadow-sm'
+          : 'border-neutral-900 bg-king-black/30'
+      )}
+    >
+      <div
+        className={cn(
+          'mb-5 border-b pb-4',
+          isLight ? 'border-black/[0.06]' : 'border-neutral-900/70'
+        )}
+      >
         <h4 className="font-mono text-[11px] uppercase tracking-[0.26em] text-king-red sm:text-xs">
           {title}
         </h4>
@@ -1230,17 +1409,23 @@ function StampScopeRow({
   label,
   checked,
   onChange,
+  isLight = false,
 }: {
   name: string;
   label: string;
   checked: boolean;
   onChange: () => void;
+  isLight?: boolean;
 }) {
   return (
     <label
       className={cn(
         'flex cursor-pointer items-start gap-3 rounded-md border px-4 py-3 transition',
-        checked ? 'border-king-red/50 bg-king-red/5' : 'border-neutral-800 hover:border-neutral-600'
+        checked
+          ? 'border-king-red/50 bg-king-red/5'
+          : isLight
+            ? 'border-black/10 bg-white hover:border-king-red/25'
+            : 'border-neutral-800 hover:border-neutral-600'
       )}
     >
       <input

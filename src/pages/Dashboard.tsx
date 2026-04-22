@@ -51,10 +51,10 @@ export default function Dashboard() {
               Sua corte
             </span>
             <h1 className="mt-2 heading-display text-5xl md:text-7xl text-king-fg">
-              OLÁ, {(user?.displayName?.split(' ')[0] ?? 'REI').toUpperCase()}
+              OLÁ, {(user?.displayName?.split(' ')[0] ?? 'Filho do Rei').toUpperCase()}
             </h1>
             <p className="mt-3 font-serif italic text-king-silver/80">
-              Acompanhe seus pedidos e fale com a realeza.
+              Acompanhe seus pedidos e fale com o suporte.
             </p>
           </div>
           <div className="flex gap-3">

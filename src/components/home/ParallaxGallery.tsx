@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { logoBordo, logoBranco, logoPreto } from '@/assets/logos';
 import { useThemeStore } from '@/store/useThemeStore';
+import { cn } from '@/utils/cn';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -78,6 +79,7 @@ function ReiEmMovimentoMarquee() {
 }
 
 export default function ParallaxGallery() {
+  const theme = useThemeStore((s) => s.theme);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -132,8 +134,13 @@ export default function ParallaxGallery() {
           <span className="font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
             Lookbook
           </span>
-          <h2 className="heading-display text-4xl md:text-7xl text-gradient-red">
-            REI EM MOVIMENTO
+          <h2
+            className={cn(
+              'heading-display text-4xl md:text-7xl',
+              theme === 'light' ? 'text-gradient-red' : 'text-king-fg'
+            )}
+          >
+            FILHO DO REI EM MOVIMENTO
           </h2>
         </motion.div>
 

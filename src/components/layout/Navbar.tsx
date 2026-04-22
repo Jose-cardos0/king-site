@@ -21,7 +21,6 @@ import KingLogo from '@/components/ui/KingLogo';
 const NAV = [
   { to: '/', label: 'Início' },
   { to: '/produtos', label: 'Coleção' },
-  { to: '/produtos?cat=colecao-sacra', label: 'Sagrado' },
   { to: '/dashboard', label: 'Minha Conta' },
 ];
 
@@ -191,7 +190,7 @@ export default function Navbar() {
                         {user.email}
                       </p>
                       <p className="truncate font-display text-sm text-king-fg">
-                        {user.displayName ?? 'Rei'}
+                        {user.displayName ?? 'Filho do Rei'}
                       </p>
                     </div>
                     <Link
@@ -297,7 +296,7 @@ export default function Navbar() {
               )}
             </nav>
             <p className="px-8 pb-10 font-serif italic text-sm text-king-silver/60">
-              Vista-se com o rei.
+              Vista-se com o Filho do Rei.
             </p>
           </motion.div>
         )}

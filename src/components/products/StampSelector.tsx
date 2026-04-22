@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { HiOutlineX, HiOutlineSearch, HiCheck } from 'react-icons/hi';
-import { STAMPS, STAMP_CATEGORIES, type Stamp } from '@/assets/estampas';
+import type { Stamp } from '@/assets/estampas';
+import { useStampsStore } from '@/store/useStampsStore';
 import { cn } from '@/utils/cn';
 import { getLenisRoot } from '@/lib/lenisRoot';
 
@@ -32,17 +33,18 @@ export default function StampSelector({
   const [category, setCategory] = useState<string>(ALL);
   const [query, setQuery] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(selectedId);
+  const mergedBack = useStampsStore((s) => s.mergedBack);
 
   const catalogStamps = useMemo(() => {
-    if (allowedStampIds === undefined || allowedStampIds === null) return STAMPS;
+    if (allowedStampIds === undefined || allowedStampIds === null) return mergedBack;
     if (allowedStampIds.length === 0) return [];
     const set = new Set(allowedStampIds);
-    return STAMPS.filter((s) => set.has(s.id));
-  }, [allowedStampIds]);
+    return mergedBack.filter((s) => set.has(s.id));
+  }, [allowedStampIds, mergedBack]);
 
   const categoriesInCatalog = useMemo(() => {
     const set = new Set(catalogStamps.map((s) => s.category));
-    return STAMP_CATEGORIES.filter((c) => set.has(c));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
   }, [catalogStamps]);
 
   useEffect(() => {
@@ -91,6 +93,7 @@ export default function StampSelector({
       {open && (
         <>
           <motion.div
+            data-king-modal
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -98,11 +101,12 @@ export default function StampSelector({
             className="fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm"
           />
           <motion.div
+            data-king-modal
             initial={{ opacity: 0, y: 40, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.98 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-x-4 top-[5vh] bottom-[5vh] z-[91] mx-auto flex max-w-5xl flex-col overflow-hidden rounded-xl border border-white/10 bg-king-jet md:inset-x-8"
+            className="fixed inset-x-4 top-[5vh] bottom-[5vh] z-[91] mx-auto flex max-w-5xl flex-col overflow-hidden rounded-xl border border-king-ash/30 bg-king-jet md:inset-x-8"
             role="dialog"
             aria-modal="true"
             data-lenis-prevent

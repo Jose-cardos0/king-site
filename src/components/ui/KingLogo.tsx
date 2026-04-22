@@ -11,7 +11,7 @@ export type KingLogoProps = ImgHTMLAttributes<HTMLImageElement> & {
 
 /**
  * Logo KING oficial.
- * - `auto`: branco no tema escuro, preto no tema claro (fundo claro).
+ * - `auto`: branco no tema escuro, bordô no tema claro (fundo claro).
  * - `white` | `black` | `bordo`: força a variante de cor.
  */
 const KingLogo = forwardRef<HTMLImageElement, KingLogoProps>(function KingLogo(
@@ -29,7 +29,7 @@ const KingLogo = forwardRef<HTMLImageElement, KingLogoProps>(function KingLogo(
           ? logoBordo
           : theme === 'dark'
             ? logoBranco
-            : logoPreto;
+            : logoBordo;
 
   return (
     <img

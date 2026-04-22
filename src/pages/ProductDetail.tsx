@@ -5,13 +5,13 @@ import {
   HiOutlineShoppingCart,
   HiOutlineHeart,
   HiArrowNarrowLeft,
-  HiOutlineSparkles,
   HiOutlinePencilAlt,
 } from 'react-icons/hi';
 import { Cross, Crown, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useProductsStore } from '@/store/useProductsStore';
 import { useCartStore } from '@/store/useCartStore';
+import { useStampsStore } from '@/store/useStampsStore';
 import { formatBRL } from '@/utils/format';
 import type { Product, ProductSize } from '@/services/products.service';
 import { getProduct } from '@/services/products.service';
@@ -19,7 +19,7 @@ import { SEED_PRODUCTS } from '@/data/seedProducts';
 import { cn } from '@/utils/cn';
 import StampSelector from '@/components/products/StampSelector';
 import MeasureGuideModal from '@/components/products/MeasureGuideModal';
-import { STAMPS, type Stamp } from '@/assets/estampas';
+import type { Stamp } from '@/assets/estampas';
 import {
   getEffectiveBackStampIds,
   getEffectiveFrontStampIds,
@@ -27,7 +27,6 @@ import {
   productAllowsFrontStamps,
 } from '@/utils/productStamps';
 import {
-  FRONT_LOGO_STAMPS,
   FRONT_LOGO_PRETO_ID,
   kingLogoPretoOnDarkImgClass,
   type FrontLogoStamp,
@@ -51,13 +50,7 @@ export default function ProductDetail() {
   const [stampOpen, setStampOpen] = useState(false);
   const [measureGuideOpen, setMeasureGuideOpen] = useState(false);
 
-  const stampCountLabel = useMemo(() => {
-    if (!product) return `${STAMPS.length}+ opções exclusivas`;
-    if (product.allowedBackStampIds === undefined)
-      return `${STAMPS.length}+ opções exclusivas`;
-    const n = getEffectiveBackStampIds(product).length;
-    return `${n} opç${n === 1 ? 'ão' : 'ões'} nesta peça`;
-  }, [product]);
+  const mergedFront = useStampsStore((s) => s.mergedFront);
 
   const allowsBackStamps = useMemo(
     () => (product ? productAllowsBackStamps(product) : false),
@@ -68,10 +61,10 @@ export default function ProductDetail() {
     [product]
   );
   const frontOptions = useMemo(() => {
-    if (!product) return FRONT_LOGO_STAMPS;
+    if (!product) return mergedFront;
     const ids = getEffectiveFrontStampIds(product);
-    return FRONT_LOGO_STAMPS.filter((o) => ids.includes(o.id));
-  }, [product]);
+    return mergedFront.filter((o) => ids.includes(o.id));
+  }, [product, mergedFront]);
   const backStampIdsForModal = useMemo(() => {
     if (!product) return undefined as string[] | undefined;
     if (product.allowedBackStampIds === undefined) return undefined;
@@ -312,28 +305,31 @@ export default function ProductDetail() {
                   </div>
                 </motion.div>
               ) : (
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setStampOpen(true)}
-                  className="group flex w-full items-center justify-between gap-4 border border-white/15 bg-king-black/30 p-4 text-left transition hover:border-king-red hover:bg-king-red/[0.05]"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full border border-king-red/40 text-king-red transition group-hover:bg-king-red group-hover:text-king-bone">
-                      <HiOutlineSparkles className="text-lg" />
-                    </span>
-                    <div>
-                      <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-fg">
+                <div className="pdp-stamp-cta-sweep">
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setStampOpen(true)}
+                    className="group flex w-full items-center justify-between gap-4 rounded-md border border-white/10 bg-king-black/92 p-4 text-left shadow-inner transition hover:border-king-red/40 hover:bg-king-red/[0.06] md:p-5"
+                  >
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <Crown
+                        className={cn(
+                          'h-7 w-7 shrink-0 transition md:h-8 md:w-8',
+                          'text-white [html.light_&]:text-king-ink',
+                          'group-hover:text-white [html.light_&]:group-hover:text-white'
+                        )}
+                        strokeWidth={1.35}
+                        aria-hidden
+                      />
+                      <p className="font-mono text-sm uppercase leading-snug tracking-[0.22em] text-king-fg sm:text-base md:text-lg">
                         Selecionar estampa (costas)
                       </p>
-                      <p className="mt-0.5 font-serif italic text-xs text-king-silver/70">
-                        Arte no verso da peça. {stampCountLabel}
-                      </p>
                     </div>
-                  </div>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver transition group-hover:text-king-red">
-                    Abrir →
-                  </span>
-                </motion.button>
+                    <span className="shrink-0 font-mono text-xs uppercase tracking-[0.28em] text-king-silver transition group-hover:text-king-red sm:text-sm">
+                      Abrir →
+                    </span>
+                  </motion.button>
+                </div>
               )}
             </motion.div>
             )}
@@ -345,14 +341,8 @@ export default function ProductDetail() {
               transition={{ delay: 0.4, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="mt-5"
             >
-              <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
+              <p className="font-mono text-sm uppercase tracking-[0.24em] text-king-fg sm:text-base md:text-lg">
                 Estampa frente
-              </p>
-              <p className="mt-1 font-serif italic text-xs text-king-silver/70">
-                Logo oficial KING —{' '}
-                {frontOptions.length === FRONT_LOGO_STAMPS.length
-                  ? 'escolha uma das três cores para o peito.'
-                  : `${frontOptions.length} opç${frontOptions.length === 1 ? 'ão' : 'ões'} disponí${frontOptions.length === 1 ? 'vel' : 'veis'} nesta peça.`}
               </p>
               <div
                 className={cn(

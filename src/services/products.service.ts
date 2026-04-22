@@ -33,13 +33,13 @@ export interface Product {
   tag?: string;
   createdAt?: unknown;
   /**
-   * Estampas de costas permitidas (ids dos arquivos em `estampas/`).
+   * Estampas de costas permitidas (ids do catálogo no Firestore, prefixo `fb_` ou id legado).
    * Ausente = todas disponíveis. Array vazio = produto sem opção de costas.
    */
   allowedBackStampIds?: string[];
   /**
-   * Logos de frente permitidos (ex.: king-logo-bordo).
-   * Ausente = os 3 logos. Array vazio = sem opção de frente.
+   * Artes de frente permitidas (ids do catálogo: logos oficiais + `fb_…` do Firebase).
+   * Ausente = todo o catálogo de frente. Array vazio = sem opção de frente.
    */
   allowedFrontStampIds?: string[];
 }

@@ -69,7 +69,7 @@ export const SEED_PRODUCTS: Product[] = [
   },
   {
     id: 'seed-5',
-    name: 'Regata Rei',
+    name: 'Regata Filho do Rei',
     description:
       'Regata oversized em malha pesada. Cava reforçada e estampa coroa frontal.',
     price: 139.9,

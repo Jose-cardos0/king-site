@@ -22,3 +22,22 @@ export async function uploadProductGalleryImage(file: File): Promise<string> {
   });
   return getDownloadURL(storageRef);
 }
+
+/**
+ * Upload de estampa (costas ou frente) — pasta `stamps/{side}/{uid}/...`.
+ * Mesmas permissões que a galeria de produtos (admin logado).
+ */
+export async function uploadStampImage(file: File, side: 'back' | 'front'): Promise<string> {
+  const user = auth.currentUser;
+  if (!user?.uid) {
+    throw new Error('AUTH_REQUIRED');
+  }
+  const safe = sanitizeFileName(file.name || 'estampa.png');
+  const path = `stamps/${side}/${user.uid}/${Date.now()}_${safe}`;
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, file, {
+    contentType: file.type || 'image/png',
+  });
+  return getDownloadURL(storageRef);
+}
+

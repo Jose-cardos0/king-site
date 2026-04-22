@@ -22,7 +22,7 @@ export default function Login() {
     setLoading(true);
     try {
       await loginWithEmail(email, password);
-      toast.success('Bem-vindo, rei.');
+      toast.success('Bem-vindo, Filho do Rei.');
       navigate(from);
     } catch (err) {
       const msg = (err as { code?: string })?.code ?? '';
@@ -42,7 +42,7 @@ export default function Login() {
     setLoading(true);
     try {
       await loginWithGoogle();
-      toast.success('Bem-vindo, rei.');
+      toast.success('Bem-vindo, Filho do Rei.');
       navigate(from);
     } catch (err) {
       console.error(err);

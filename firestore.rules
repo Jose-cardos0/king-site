@@ -31,5 +31,11 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
+
+    // Estampas (costas/frente) — leitura pública na loja; CRUD só admin
+    match /stamps/{stampId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
   }
 }
