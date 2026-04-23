@@ -133,7 +133,7 @@ export default function ParallaxGallery() {
               theme === 'light' ? 'text-gradient-red' : 'text-king-fg'
             )}
           >
-            REI EM MOVIMENTO
+            VISTA PROPÓSITO
           </h2>
         </motion.div>
 

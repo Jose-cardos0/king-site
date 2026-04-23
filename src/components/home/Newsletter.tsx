@@ -2,15 +2,34 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { HiArrowNarrowRight } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import {
+  createLead,
+  formatBRPhone,
+  isValidBRPhone,
+  normalizePhoneDigits,
+} from '@/services/leads.service';
 
 export default function Newsletter() {
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-    toast.success('Bem-vindo à realeza. Boas-vindas em sua caixa.');
-    setEmail('');
+    const digits = normalizePhoneDigits(phone);
+    if (!isValidBRPhone(digits)) {
+      toast.error('Digite um WhatsApp válido com DDD');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await createLead(digits, 'newsletter');
+      toast.success('Bem-vindo à realeza. Avisaremos em primeira mão.');
+      setPhone('');
+    } catch {
+      toast.error('Não foi possível salvar agora. Tente novamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -25,13 +44,13 @@ export default function Newsletter() {
           className="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center"
         >
           <span className="font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
-            Inscreva-se na realeza
+            QUER RECEBER NOVIDADES?
           </span>
           <h2 className="heading-display text-4xl md:text-6xl text-king-fg">
             DROPS EM <span className="text-gradient-red">PRIMEIRA MÃO</span>
           </h2>
           <p className="font-serif italic text-king-silver/80">
-            Acesso antecipado, convites para tiragens limitadas e bênçãos digitais.
+            Acesso antecipado, convites para tiragens limitadas e bênçãos digitais no seu WhatsApp.
           </p>
           <form
             onSubmit={onSubmit}
@@ -39,20 +58,23 @@ export default function Newsletter() {
           >
             <div className="flex-1">
               <label className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver">
-                E-mail
+                WhatsApp
               </label>
               <input
-                type="email"
+                type="tel"
+                inputMode="numeric"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="rei@dominio.com"
+                value={phone}
+                onChange={(e) => setPhone(formatBRPhone(e.target.value))}
+                placeholder="(11) 99999-9999"
+                maxLength={16}
                 className="input-king mt-1"
               />
             </div>
             <button
               type="submit"
-              className="flex h-12 w-12 items-center justify-center bg-king-red/90 text-king-bone transition hover:bg-king-glow/95 hover:shadow-glow-red"
+              disabled={submitting}
+              className="flex h-12 w-12 items-center justify-center bg-king-red/90 text-king-bone transition hover:bg-king-glow/95 hover:shadow-glow-red disabled:opacity-50"
             >
               <HiArrowNarrowRight />
             </button>

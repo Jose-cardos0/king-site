@@ -109,11 +109,27 @@ export type OrderInput = Omit<Order, 'id' | 'createdAt'>;
 
 const COLLECTION = 'orders';
 
+function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((v) => stripUndefined(v)) as unknown as T;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (v === undefined) continue;
+      out[k] = stripUndefined(v);
+    }
+    return out as unknown as T;
+  }
+  return value;
+}
+
 export async function createOrder(data: OrderInput): Promise<string> {
-  const ref = await addDoc(collection(db, COLLECTION), {
+  const payload = stripUndefined({
     ...data,
     createdAt: serverTimestamp(),
   });
+  const ref = await addDoc(collection(db, COLLECTION), payload);
   return ref.id;
 }
 

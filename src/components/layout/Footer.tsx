@@ -57,7 +57,7 @@ export default function Footer() {
             <ul className="space-y-3 text-sm">
               <li><Link to="/" className="hover:text-king-red transition">Início</Link></li>
               <li><Link to="/produtos" className="hover:text-king-red transition">Coleção</Link></li>
-              <li><Link to="/produtos?cat=colecao-sacra" className="hover:text-king-red transition">Linha Sagrada</Link></li>
+             
               <li><Link to="/dashboard" className="hover:text-king-red transition">Minha Conta</Link></li>
             </ul>
           </div>
@@ -74,7 +74,14 @@ export default function Footer() {
                   WhatsApp
                 </button>
               </li>
-              <li><a className="hover:text-king-red transition">Trocas & Devoluções</a></li>
+              <li>
+                    <button
+                  onClick={() => openWhatsApp(buildSupportMessage())}
+                  className="hover:text-king-red transition"
+                >
+                  Troca e Devolução
+                </button>
+              </li>
               <li>
                 <button
                   type="button"
@@ -84,7 +91,7 @@ export default function Footer() {
                   Guia de Tamanhos
                 </button>
               </li>
-              <li><a className="hover:text-king-red transition">Envio</a></li>
+             
             </ul>
           </div>
           <div>
@@ -121,9 +128,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-20 flex flex-col items-center justify-between gap-4 border-t border-white/5 pt-8 text-xs font-mono uppercase tracking-[0.25em] text-king-silver/50 md:flex-row">
+        <div className="mt-20 flex flex-col items-center justify-between gap-4 border-t border-white/5 pt-8 
+        text-xs font-mono uppercase tracking-[0.25em] text-king-silver/50 md:flex-row max-md:text-center max-md:text-[8px]">
           <p>© {new Date().getFullYear()} KING Oversized · Todos os direitos reservados</p>
           <p>Feito com fé e código · BRASIL</p>
+          <p>Desenvolvido por <a className=' text-red-500 animate-pulse font-bold' href="https://codenxt.online">CODENXT</a></p>
         </div>
       </div>
 

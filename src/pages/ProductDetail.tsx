@@ -49,6 +49,7 @@ export default function ProductDetail() {
   const [stampFront, setStampFront] = useState<FrontLogoStamp | null>(null);
   const [stampOpen, setStampOpen] = useState(false);
   const [measureGuideOpen, setMeasureGuideOpen] = useState(false);
+  const [mobileStep, setMobileStep] = useState(1);
 
   const mergedFront = useStampsStore((s) => s.mergedFront);
 
@@ -70,6 +71,24 @@ export default function ProductDetail() {
     if (product.allowedBackStampIds === undefined) return undefined;
     return getEffectiveBackStampIds(product);
   }, [product]);
+
+  const mobileSteps = useMemo(() => {
+    const steps: Array<'info' | 'back' | 'front'> = ['info'];
+    if (allowsBackStamps) steps.push('back');
+    if (allowsFrontStamps) steps.push('front');
+    return steps;
+  }, [allowsBackStamps, allowsFrontStamps]);
+  const totalMobileSteps = mobileSteps.length;
+  const currentStepKey = mobileSteps[mobileStep - 1] ?? 'info';
+  const isLastMobileStep = mobileStep >= totalMobileSteps;
+
+  useEffect(() => {
+    setMobileStep(1);
+  }, [product?.id]);
+
+  useEffect(() => {
+    if (mobileStep > totalMobileSteps) setMobileStep(1);
+  }, [mobileStep, totalMobileSteps]);
 
   useEffect(() => {
     if (!product) return;
@@ -167,6 +186,24 @@ export default function ProductDetail() {
     navigate('/checkout');
   };
 
+  const scrollStepTop = () => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+  const goNextMobileStep = () => {
+    if (currentStepKey === 'info' && !size) {
+      toast.error('Selecione um tamanho');
+      return;
+    }
+    setMobileStep((s) => Math.min(totalMobileSteps, s + 1));
+    scrollStepTop();
+  };
+  const goPrevMobileStep = () => {
+    setMobileStep((s) => Math.max(1, s - 1));
+    scrollStepTop();
+  };
+
   return (
     <main className="relative bg-king-black py-16">
       <div className="light-rays opacity-20" />
@@ -178,9 +215,54 @@ export default function ProductDetail() {
           <HiArrowNarrowLeft /> Voltar à coleção
         </Link>
 
+        {totalMobileSteps > 1 && (
+          <div className="md:hidden mb-6 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3">
+              {mobileSteps.map((_, i) => {
+                const n = i + 1;
+                const isCurrent = n === mobileStep;
+                const isDone = n < mobileStep;
+                return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span
+                      className={cn(
+                        'flex h-8 w-8 items-center justify-center rounded-full border font-mono text-[12px] font-semibold transition-all',
+                        isCurrent
+                          ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
+                          : isDone
+                          ? 'border-king-red/60 bg-king-red/20 text-king-red'
+                          : 'border-white/20 bg-transparent text-king-silver'
+                      )}
+                    >
+                      {n}
+                    </span>
+                    {n < totalMobileSteps && (
+                      <span
+                        className={cn(
+                          'h-[2px] w-6 transition-all',
+                          isDone ? 'bg-king-red/60' : 'bg-white/15'
+                        )}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver">
+              Passo {mobileStep} de {totalMobileSteps}
+              {' · '}
+              {currentStepKey === 'info'
+                ? 'Peça & tamanho'
+                : currentStepKey === 'back'
+                ? 'Estampa costas'
+                : 'Estampa frente'}
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2">
           {/* Gallery */}
-          <div>
+          <div className={cn(currentStepKey !== 'info' && 'hidden md:block')}>
             <motion.div
               key={selectedImage}
               initial={{ opacity: 0, scale: 1.02 }}
@@ -223,51 +305,61 @@ export default function ProductDetail() {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col"
           >
-            {product.tag && (
-              <span className="self-start bg-king-red/88 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.3em] text-king-bone">
-                {product.tag}
-              </span>
-            )}
-
-            <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
-              {product.category.replace('-', ' ')}
-            </p>
-
-            <h1 className="mt-2 heading-display text-4xl md:text-6xl leading-[0.95] text-king-fg">
-              {product.name}
-            </h1>
-
-            <div className="mt-6 flex items-baseline gap-4">
-              <span className="heading-display text-3xl text-king-fg">
-                {formatBRL(product.price)}
-              </span>
-              {product.oldPrice && (
-                <span className="font-mono text-sm text-king-silver/50 line-through">
-                  {formatBRL(product.oldPrice)}
+            <div
+              className={cn(
+                'flex flex-col',
+                currentStepKey !== 'info' && 'hidden md:flex'
+              )}
+            >
+              {product.tag && (
+                <span className="self-start bg-king-red/88 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.3em] text-king-bone">
+                  {product.tag}
                 </span>
               )}
+
+              <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
+                {product.category.replace('-', ' ')}
+              </p>
+
+              <h1 className="mt-2 heading-display text-4xl md:text-6xl leading-[0.95] text-king-fg">
+                {product.name}
+              </h1>
+
+              <div className="mt-6 flex items-baseline gap-4">
+                <span className="heading-display text-3xl text-king-fg">
+                  {formatBRL(product.price)}
+                </span>
+                {product.oldPrice && (
+                  <span className="font-mono text-sm text-king-silver/50 line-through">
+                    {formatBRL(product.oldPrice)}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.25em] text-king-silver/70">
+                Em até 6x de {formatBRL(product.price / 6)} sem juros
+              </p>
+
+              <div className="my-8 h-px w-full bg-gradient-to-r from-king-red/22 to-transparent" />
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="font-serif text-base leading-relaxed text-king-silver/90 md:text-lg"
+              >
+                {product.description}
+              </motion.p>
             </div>
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.25em] text-king-silver/70">
-              Em até 6x de {formatBRL(product.price / 6)} sem juros
-            </p>
-
-            <div className="my-8 h-px w-full bg-gradient-to-r from-king-red/22 to-transparent" />
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="font-serif text-base leading-relaxed text-king-silver/90 md:text-lg"
-            >
-              {product.description}
-            </motion.p>
 
             {allowsBackStamps && (
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-6"
+              className={cn(
+                'mt-6',
+                currentStepKey !== 'back' && 'hidden md:block'
+              )}
             >
               {stamp ? (
                 <motion.div
@@ -339,7 +431,10 @@ export default function ProductDetail() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-5"
+              className={cn(
+                'mt-5',
+                currentStepKey !== 'front' && 'hidden md:block'
+              )}
             >
               <p className="font-mono text-sm uppercase tracking-[0.24em] text-king-fg sm:text-base md:text-lg">
                 Estampa frente
@@ -395,61 +490,67 @@ export default function ProductDetail() {
             </motion.div>
             )}
 
-            <div className="mt-8">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
-                  Tamanho
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setMeasureGuideOpen(true)}
-                  className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-red hover:underline"
-                >
-                  Guia de medidas
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((s) => (
+            <div
+              className={cn(
+                currentStepKey !== 'info' && 'hidden md:block'
+              )}
+            >
+              <div className="mt-8">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
+                    Tamanho
+                  </p>
                   <button
-                    key={s}
-                    onClick={() => setSize(s)}
-                    className={cn(
-                      'h-12 min-w-[52px] border px-4 font-mono text-sm uppercase tracking-[0.25em] transition',
-                      size === s
-                        ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
-                        : 'border-white/15 text-king-silver hover:border-king-red hover:text-king-fg'
-                    )}
+                    type="button"
+                    onClick={() => setMeasureGuideOpen(true)}
+                    className="font-mono text-[11px] uppercase tracking-[0.3em] text-king-red hover:underline"
                   >
-                    {s}
+                    Guia de medidas
                   </button>
-                ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSize(s)}
+                      className={cn(
+                        'h-12 min-w-[52px] border px-4 font-mono text-sm uppercase tracking-[0.25em] transition',
+                        size === s
+                          ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
+                          : 'border-white/15 text-king-silver hover:border-king-red hover:text-king-fg'
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
+                  Quantidade
+                </p>
+                <div className="inline-flex items-center border border-white/15">
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="h-11 w-11 text-king-silver hover:text-king-red"
+                  >
+                    −
+                  </button>
+                  <span className="min-w-[52px] text-center font-display text-base text-king-fg">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="h-11 w-11 text-king-silver hover:text-king-red"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6">
-              <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver">
-                Quantidade
-              </p>
-              <div className="inline-flex items-center border border-white/15">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="h-11 w-11 text-king-silver hover:text-king-red"
-                >
-                  −
-                </button>
-                <span className="min-w-[52px] text-center font-display text-base text-king-fg">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity((q) => q + 1)}
-                  className="h-11 w-11 text-king-silver hover:text-king-red"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-10 hidden flex-col gap-3 sm:flex-row md:flex">
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={addToCart}
@@ -478,14 +579,21 @@ export default function ProductDetail() {
                 <motion.p
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-king-glow"
+                  className={cn(
+                    'mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-king-glow',
+                    currentStepKey !== 'info' && 'hidden md:block'
+                  )}
                 >
                   ⚡ Apenas {product.stock} peças em estoque
                 </motion.p>
               )}
             </AnimatePresence>
 
-            <div className="mt-10 grid grid-cols-3 gap-3 border-t border-white/5 pt-6 font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/80 sm:gap-4">
+            <div
+              className={cn(
+                'mt-10 hidden grid-cols-3 gap-3 border-t border-white/5 pt-6 font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/80 sm:gap-4 md:grid'
+              )}
+            >
               {[
                 { Icon: Cross, text: 'Envio em 24h' },
                 { Icon: Crown, text: 'Trocas em 30 dias' },
@@ -506,6 +614,49 @@ export default function ProductDetail() {
             </div>
           </motion.div>
         </div>
+
+        {/* Mobile step navigation */}
+        <div className="md:hidden mt-8 flex gap-3">
+          {mobileStep > 1 && (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={goPrevMobileStep}
+              className="btn-ghost flex-1"
+            >
+              ← Voltar
+            </motion.button>
+          )}
+          {!isLastMobileStep ? (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={goNextMobileStep}
+              className="btn-king flex-1"
+            >
+              Próximo →
+            </motion.button>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={addToCart}
+              className="btn-king flex-1"
+            >
+              Adicionar à sacola
+            </motion.button>
+          )}
+        </div>
+
+        {/* Mobile "Comprar agora" on last step */}
+        {isLastMobileStep && (
+          <div className="md:hidden mt-3">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={buyNow}
+              className="btn-ghost w-full"
+            >
+              Comprar agora
+            </motion.button>
+          </div>
+        )}
       </div>
 
       <StampSelector

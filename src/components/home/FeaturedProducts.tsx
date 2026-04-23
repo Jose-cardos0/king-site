@@ -32,7 +32,7 @@ export default function FeaturedProducts() {
       >
         {/* Mobile: faixa mais larga + zoom no rosto + opacidade maior */}
         <div
-          className="h-full w-full md:hidden opacity-[0.26]"
+          className="h-full w-full md:hidden opacity-[0.10]"
           style={{
             backgroundImage: `url(${jesus2Img})`,
             backgroundSize: 'auto 118%',

@@ -49,5 +49,13 @@ service cloud.firestore {
         && request.resource.data.usedCount == resource.data.usedCount + 1
       );
     }
+
+    // Leads — qualquer um pode criar (formulário de WhatsApp no site).
+    // Leitura/remoção somente admin.
+    match /leads/{leadId} {
+      allow create: if true;
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin();
+    }
   }
 }

@@ -64,13 +64,13 @@ export default function SacredCollection() {
         >
           <span className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.4em] text-king-red">
             <span className="h-[1px] w-8 bg-king-red" />
-            Cápsula Sagrada 2026
+            Coleção EXCLUSIVA 2026
           </span>
           <h2 className="mt-5 heading-display text-4xl md:text-6xl leading-[0.95] text-king-fg">
             <span className="block">VIA</span>
             <span className="block text-gradient-red text-glow">CRUCIS</span>
             <span className="block font-serif italic text-xl md:text-3xl text-king-silver/80 mt-3 tracking-normal normal-case">
-              — a arte que se veste
+              — vista propósito!
             </span>
           </h2>
 
@@ -82,19 +82,19 @@ export default function SacredCollection() {
 
           <ul className="mt-8 space-y-3 font-mono text-[11px] uppercase tracking-[0.3em] text-king-silver/80">
             <li className="flex items-center gap-3">
-              <span className="h-[1px] w-6 bg-king-red" /> Numeradas de 01 a 100
+              <span className="h-[1px] w-6 bg-king-red" /> Customizadas por você!
             </li>
             <li className="flex items-center gap-3">
-              <span className="h-[1px] w-6 bg-king-red" /> Certificado físico incluso
+              <span className="h-[1px] w-6 bg-king-red" /> Algodão premium
             </li>
             <li className="flex items-center gap-3">
-              <span className="h-[1px] w-6 bg-king-red" /> Estampas em serigrafia manual
+              <span className="h-[1px] w-6 bg-king-red" /> Estampas em DTF e Serigrafia
             </li>
           </ul>
 
           <Link to="/produtos?cat=colecao-sacra" className="mt-10 inline-block">
             <button className="btn-king group">
-              Descobrir a cápsula
+              Ver mais da coleção
               <HiArrowNarrowRight className="transition-transform group-hover:translate-x-2" />
             </button>
           </Link>

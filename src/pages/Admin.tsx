@@ -28,6 +28,7 @@ import { useStampsStore } from '@/store/useStampsStore';
 import { uploadProductGalleryImage } from '@/services/storage.service';
 import StampsTab from '@/components/admin/StampsTab';
 import CouponsTab from '@/components/admin/CouponsTab';
+import LeadsTab from '@/components/admin/LeadsTab';
 import AdminPaginationBar, { ADMIN_PAGE_SIZE } from '@/components/admin/AdminPaginationBar';
 import OrderCard from '@/components/admin/OrderCard';
 import AdminKPIs from '@/components/admin/AdminKPIs';
@@ -59,7 +60,7 @@ import {
 
 const ALL_SIZES: ProductSize[] = ['P', 'M', 'G', 'GG', 'XGG'];
 
-type AdminTab = 'products' | 'orders' | 'kpis' | 'stamps' | 'coupons';
+type AdminTab = 'products' | 'orders' | 'kpis' | 'stamps' | 'coupons' | 'leads';
 
 export default function Admin() {
   const [tab, setTab] = useState<AdminTab>('products');
@@ -210,7 +211,7 @@ export default function Admin() {
         </motion.div>
 
         <div className="mb-8 flex flex-wrap gap-2">
-          {(['products', 'orders', 'kpis', 'coupons', 'stamps'] as const).map((t) => (
+          {(['products', 'orders', 'kpis', 'coupons', 'stamps', 'leads'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -229,7 +230,9 @@ export default function Admin() {
                     ? 'KPIs'
                     : t === 'coupons'
                       ? 'Cupons'
-                      : 'Estampas'}
+                      : t === 'stamps'
+                        ? 'Estampas'
+                        : 'Leads'}
             </button>
           ))}
         </div>
@@ -238,6 +241,8 @@ export default function Admin() {
           <StampsTab />
         ) : tab === 'coupons' ? (
           <CouponsTab />
+        ) : tab === 'leads' ? (
+          <LeadsTab />
         ) : tab === 'kpis' ? (
           loading ? (
             <div className="flex justify-center py-20">
