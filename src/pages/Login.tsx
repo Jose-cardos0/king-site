@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FcGoogle } from 'react-icons/fc';
-import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff, HiOutlineDownload } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { loginWithEmail, loginWithGoogle } from '@/services/auth.service';
 import GlowButton from '@/components/ui/GlowButton';
 import KingLogo from '@/components/ui/KingLogo';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,6 +17,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? '/';
+  const pwa = usePWAInstall();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +106,17 @@ export default function Login() {
         <FcGoogle className="text-xl" />
         Continuar com Google
       </button>
+
+      {pwa.canShow && (
+        <button
+          type="button"
+          onClick={pwa.promptInstall}
+          className="mt-3 flex w-full items-center justify-center gap-3 border border-king-red/50 bg-king-red/10 py-4 font-mono text-[11px] uppercase tracking-[0.25em] text-king-fg transition hover:border-king-red hover:bg-king-red/20"
+        >
+          <HiOutlineDownload className="text-xl text-king-red" />
+          Instalar app KING
+        </button>
+      )}
 
       <p className="mt-8 text-center font-mono text-[11px] uppercase tracking-[0.25em] text-king-silver">
         Novo no reino?{' '}

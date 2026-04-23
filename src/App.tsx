@@ -30,6 +30,8 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AdminRoute from '@/components/auth/AdminRoute';
 
 import bendoFloat from '@/assets/bendo.png';
+import { HiOutlineDownload } from 'react-icons/hi';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,7 @@ function App() {
   const initAuth = useAuthStore((s) => s.init);
   const theme = useThemeStore((s) => s.theme);
   const fetchStamps = useStampsStore((s) => s.fetch);
+  const pwa = usePWAInstall();
 
   useEffect(() => {
     const unsub = initAuth();
@@ -129,12 +132,25 @@ function App() {
 
           <Footer />
 
-          <img
-            src={bendoFloat}
-            alt=""
-            aria-hidden="true"
-            className="pointer-events-none fixed bottom-4 right-4 z-[60] h-16 w-auto opacity-80 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] md:h-20"
-          />
+          <div className="fixed bottom-4 right-4 z-[60] flex flex-col items-center gap-2">
+            {pwa.canShow && (
+              <button
+                type="button"
+                onClick={pwa.promptInstall}
+                aria-label="Instalar app KING"
+                title="Instalar app KING"
+                className="group flex h-11 w-11 items-center justify-center rounded-full bg-king-red text-king-bone shadow-[0_8px_28px_rgba(220,20,60,0.5)] transition hover:scale-105 hover:bg-king-glow md:h-12 md:w-12"
+              >
+                <HiOutlineDownload className="text-xl md:text-2xl" />
+              </button>
+            )}
+            <img
+              src={bendoFloat}
+              alt=""
+              aria-hidden="true"
+              className="pointer-events-none h-16 w-auto opacity-80 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] md:h-20"
+            />
+          </div>
         </div>
       </SmoothScroll>
     </>

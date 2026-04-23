@@ -9,7 +9,7 @@ import {
   HiOutlineSun,
   HiOutlineMoon,
   HiOutlineLogout,
-  HiOutlineSearch,
+  HiOutlineDownload,
 } from 'react-icons/hi';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useCartStore } from '@/store/useCartStore';
@@ -17,6 +17,7 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { logout } from '@/services/auth.service';
 import { cn } from '@/utils/cn';
 import KingLogo from '@/components/ui/KingLogo';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 
 const NAV = [
   { to: '/', label: 'Início' },
@@ -35,6 +36,7 @@ export default function Navbar() {
   const theme = useThemeStore((s) => s.theme);
   const toggleTheme = useThemeStore((s) => s.toggle);
   const navigate = useNavigate();
+  const pwa = usePWAInstall();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -111,13 +113,18 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <button
-              aria-label="Buscar"
-              className="hidden items-center justify-center rounded-full p-2 text-king-silver transition hover:text-king-fg md:flex"
-              data-cursor="hover"
-            >
-              <HiOutlineSearch className="text-xl" />
-            </button>
+            {pwa.canShow && (
+              <button
+                type="button"
+                onClick={pwa.promptInstall}
+                aria-label="Instalar app KING"
+                title="Instalar app KING"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full border border-king-red/50 bg-king-red/10 text-king-red transition hover:border-king-red hover:bg-king-red/20 hover:text-king-glow md:h-9 md:w-9"
+                data-cursor="hover"
+              >
+                <HiOutlineDownload className="text-lg" />
+              </button>
+            )}
 
             <button
               aria-label="Alternar tema"

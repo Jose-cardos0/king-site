@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaWhatsapp } from 'react-icons/fa';
-import { HiOutlineLogout } from 'react-icons/hi';
+import { HiOutlineLogout, HiOutlineDownload } from 'react-icons/hi';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { useAuthStore } from '@/store/useAuthStore';
 import { listOrdersByUser, type Order, type OrderStatus } from '@/services/orders.service';
 import { logout } from '@/services/auth.service';
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const pwa = usePWAInstall();
 
   useEffect(() => {
     if (!user) return;
@@ -59,7 +61,7 @@ export default function Dashboard() {
               Acompanhe seus pedidos e fale com o suporte.
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={() => openWhatsApp(buildSupportMessage(user?.displayName ?? undefined))}
               className="group flex items-center gap-3 border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.25em] text-emerald-300 transition hover:border-emerald-400 hover:bg-emerald-400/20"
@@ -67,6 +69,16 @@ export default function Dashboard() {
               <FaWhatsapp className="text-xl" />
               Suporte WhatsApp
             </button>
+            {pwa.canShow && (
+              <button
+                type="button"
+                onClick={pwa.promptInstall}
+                className="group flex items-center gap-3 border border-king-red/50 bg-king-red/10 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.25em] text-king-fg transition hover:border-king-red hover:bg-king-red/20"
+              >
+                <HiOutlineDownload className="text-xl text-king-red" />
+                Instalar app
+              </button>
+            )}
             <button
               onClick={onLogout}
               className="flex items-center gap-2 border border-white/10 px-4 py-3 font-mono text-[11px] uppercase tracking-[0.25em] text-king-silver hover:border-king-red hover:text-king-red"
