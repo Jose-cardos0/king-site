@@ -130,24 +130,18 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
     }
 
     /**
-     * Parcelas no cartão (BR): `installments.enabled` permite ao Payment Element mostrar o
-     * seletor quando a Stripe/adquirente oferecer planos para aquele BIN e conta.
-     * Não confundir com “meses sin intereses” (México) — no Brasil depende de conta Stripe
-     * com captura no país, método cartão ativo e regras do emissor/valor mínimo.
-     * Cartão de teste com emissão BR (documentação Stripe): 4000000760000002 (Visa).
-     * Com `automatic_payment_methods`, a Stripe desaconselha definir installments aqui.
+     * Métodos de pagamento dinâmicos (recomendado pela Stripe para o Payment Element):
+     * sem `payment_method_types` fixos — o que aparece (cartão, Apple/Google Pay, etc.) vem do
+     * Dashboard (Definições → Métodos de pagamento) + moeda BRL + país da conta.
+     * Com `automatic_payment_methods`, a Stripe trata parcelas e elegibilidade no Payment Element.
+     * @see https://docs.stripe.com/payments/payment-methods/dynamic-payment-methods
      */
     const intent = await getStripe().paymentIntents.create({
       amount: amountCents,
       currency,
-      /** Sem `link` aqui: contas sem Link ativo falham com “payment method type link is invalid”. */
-      payment_method_types: ['card', 'boleto'],
-      payment_method_options: {
-        card: {
-          installments: {
-            enabled: true,
-          },
-        },
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: 'always',
       },
       metadata: attachInventoryToStripeMetadata(
         {

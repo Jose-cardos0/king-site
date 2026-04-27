@@ -307,10 +307,14 @@ function InnerForm({
                         },
                       },
                     },
-                    /** Google Pay / Apple Pay quando a conta e o domínio estão elegíveis na Stripe. */
+                    /**
+                     * Link: desligado aqui (via wallets) — não usar excluded_payment_method_types
+                     * para `link` (a Stripe gera erro). Carteira Apple/Google quando elegíveis.
+                     */
                     wallets: {
                       applePay: 'auto',
                       googlePay: 'auto',
+                      link: 'never',
                     },
                   }}
                 />
@@ -345,13 +349,13 @@ function InnerForm({
           theme === 'light' ? 'text-king-fg/55' : 'text-king-silver/50'
         )}
       >
-        O seletor de parcelas depende do cartão (BIN / emissor) e da configuração da loja na
-        Stripe (conta com parcelamento ativo para Brasil). Em modo de teste, o Visa com emissão
-        BR da documentação Stripe é{' '}
+        Parcelas: o pagamento usa os métodos ativos na tua conta Stripe (modo dinâmico). Confirma
+        em Definições → Métodos de pagamento que o cartão está ligado e que a conta suporta
+        parcelamento no Brasil. Cartão de teste com BIN BR:{' '}
         <span className="whitespace-nowrap font-mono not-italic tracking-tight text-king-silver/70">
           4000&nbsp;0007&nbsp;6000&nbsp;0002
         </span>
-        ; muitos outros cartões de teste só permitem pagamento à vista.
+        .
       </p>
 
       <div className="flex justify-end">
