@@ -93,25 +93,30 @@ export default function StripePaymentForm(props: Props) {
   useEffect(() => {
     let cancel = false;
     setLoading(true);
-    createPaymentIntent({
-      subtotal: props.subtotal,
-      shippingCost: props.shippingCost,
-      discount: props.discount ?? 0,
-      metadata: props.metadata,
-      inventoryLines: props.inventoryLines ?? [],
-    })
-      .then((r) => {
+    setClientSecret(null);
+    setPaymentIntentId(null);
+    setError(null);
+    (async () => {
+      try {
+        const r = await createPaymentIntent({
+          subtotal: props.subtotal,
+          shippingCost: props.shippingCost,
+          discount: props.discount ?? 0,
+          metadata: props.metadata,
+          inventoryLines: props.inventoryLines ?? [],
+        });
+        if (cancel) return;
+        await getStripe();
         if (cancel) return;
         setClientSecret(r.clientSecret);
         setPaymentIntentId(r.paymentIntentId);
-      })
-      .catch((e: Error) => {
+      } catch (e) {
         if (cancel) return;
-        setError(e.message);
-      })
-      .finally(() => {
+        setError(e instanceof Error ? e.message : 'Erro ao iniciar pagamento');
+      } finally {
         if (!cancel) setLoading(false);
-      });
+      }
+    })();
     return () => {
       cancel = true;
     };
@@ -120,11 +125,15 @@ export default function StripePaymentForm(props: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-10 text-king-silver">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.25em]">
-          Preparando pagamento seguro…
-        </span>
+      <div className="space-y-6">
+        <PaymentCardShell>
+          <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 px-2 py-10 sm:min-h-[220px]">
+            <Loader2 className="h-8 w-8 shrink-0 animate-spin text-white/85" aria-hidden />
+            <p className="max-w-[280px] text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.26em] text-white/70 sm:max-w-none sm:text-[11px] sm:tracking-[0.28em]">
+              A preparar pagamento seguro…
+            </p>
+          </div>
+        </PaymentCardShell>
       </div>
     );
   }
@@ -184,6 +193,13 @@ function InnerForm({
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
+  /** Só mostra o iframe do Stripe depois de montar e disparar `onReady` (evita “cartão partido”). */
+  const [paymentUiReady, setPaymentUiReady] = useState(false);
+  const stripeBooted = Boolean(stripe && elements);
+
+  useEffect(() => {
+    if (!stripeBooted) setPaymentUiReady(false);
+  }, [stripeBooted]);
 
   const paymentLayout = useMemo<StripePaymentElementOptions['layout']>(() => {
     if (narrowViewport) {
@@ -246,28 +262,62 @@ function InnerForm({
   return (
     <div className="space-y-6">
       <PaymentCardShell>
-        <PaymentElement
-          options={{
-            layout: paymentLayout,
-            defaultValues: {
-              billingDetails: {
-                address: { country: 'BR' },
-              },
-            },
-            fields: {
-              billingDetails: {
-                address: {
-                  country: 'never',
-                },
-              },
-            },
-            /** Google Pay / Apple Pay quando a conta e o domínio estão elegíveis na Stripe. */
-            wallets: {
-              applePay: 'auto',
-              googlePay: 'auto',
-            },
-          }}
-        />
+        <div className="relative min-h-[200px] sm:min-h-[220px]">
+          {!stripeBooted && (
+            <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 py-8 sm:min-h-[220px]">
+              <Loader2 className="h-8 w-8 shrink-0 animate-spin text-white/85" aria-hidden />
+              <p className="text-center font-mono text-[10px] uppercase tracking-[0.26em] text-white/70 sm:text-[11px]">
+                A ligar ao Stripe…
+              </p>
+            </div>
+          )}
+          {stripeBooted && (
+            <>
+              {!paymentUiReady && (
+                <div
+                  className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-md bg-[#15101f]/75 backdrop-blur-[3px] [html.light_&]:bg-[#2d0f42]/80"
+                  aria-busy="true"
+                  aria-live="polite"
+                >
+                  <Loader2 className="h-7 w-7 shrink-0 animate-spin text-white/90" aria-hidden />
+                  <span className="px-3 text-center font-mono text-[10px] uppercase tracking-[0.24em] text-white/80 sm:text-[11px]">
+                    A carregar métodos de pagamento…
+                  </span>
+                </div>
+              )}
+              <div
+                className={cn(
+                  'transition-opacity duration-200',
+                  paymentUiReady ? 'opacity-100' : 'pointer-events-none opacity-0'
+                )}
+              >
+                <PaymentElement
+                  onReady={() => setPaymentUiReady(true)}
+                  options={{
+                    layout: paymentLayout,
+                    defaultValues: {
+                      billingDetails: {
+                        address: { country: 'BR' },
+                      },
+                    },
+                    fields: {
+                      billingDetails: {
+                        address: {
+                          country: 'never',
+                        },
+                      },
+                    },
+                    /** Google Pay / Apple Pay quando a conta e o domínio estão elegíveis na Stripe. */
+                    wallets: {
+                      applePay: 'auto',
+                      googlePay: 'auto',
+                    },
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </div>
       </PaymentCardShell>
 
       <div
@@ -291,7 +341,10 @@ function InnerForm({
       </div>
 
       <div className="flex justify-end">
-        <GlowButton onClick={pay} disabled={disabled || submitting || !stripe || !elements}>
+        <GlowButton
+          onClick={pay}
+          disabled={disabled || submitting || !stripe || !elements || !paymentUiReady}
+        >
           {submitting ? 'Processando…' : `Pagar ${formatBRL(total)}`}
         </GlowButton>
       </div>
