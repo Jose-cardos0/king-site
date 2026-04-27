@@ -9,6 +9,7 @@ import { logout } from '@/services/auth.service';
 import { formatBRL, formatDate } from '@/utils/format';
 import { openWhatsApp, buildOrderMessage, buildSupportMessage } from '@/utils/whatsapp';
 import { cn } from '@/utils/cn';
+import OrderItemVisualRow from '@/components/orders/OrderItemVisualRow';
 import { useNavigate } from 'react-router-dom';
 
 const STATUS_MAP: Record<OrderStatus, { label: string; color: string; step: number }> = {
@@ -189,27 +190,26 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         {order.items.map((item, j) => (
-                          <li key={j} className="flex items-center gap-3">
-                            <div className="h-16 w-14 shrink-0 overflow-hidden">
-                              <img src={item.image} alt="" className="h-full w-full object-cover" />
-                            </div>
-                            <div className="min-w-0">
+                          <li key={j} className="flex items-start gap-3">
+                            <OrderItemVisualRow item={item} size="sm" />
+                            <div className="min-w-0 flex-1">
                               <p className="heading-display truncate text-xs text-king-fg">
                                 {item.name}
                               </p>
                               <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/70">
                                 Tam {item.size} · {item.quantity}x · {formatBRL(item.price)}
                               </p>
-                              {item.stamp && (
-                                <p className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-[0.2em] text-king-red/90">
-                                  Costas: {item.stamp.name}
-                                </p>
-                              )}
-                              {item.stampFront && (
-                                <p className="truncate font-mono text-[9px] uppercase tracking-[0.2em] text-king-silver/75">
-                                  Frente: {item.stampFront.name}
+                              {(item.stamp || item.stampFront) && (
+                                <p className="mt-1 line-clamp-2 font-mono text-[9px] uppercase leading-snug tracking-[0.16em] text-king-silver/75">
+                                  {item.stamp && (
+                                    <span className="text-king-red/90">Costas: {item.stamp.name}</span>
+                                  )}
+                                  {item.stamp && item.stampFront && (
+                                    <span className="text-king-silver/40"> · </span>
+                                  )}
+                                  {item.stampFront && <span>Frente: {item.stampFront.name}</span>}
                                 </p>
                               )}
                             </div>

@@ -12,6 +12,7 @@ export function formatDate(timestamp: unknown): string {
       typeof timestamp === 'object' && timestamp && 'toDate' in timestamp
         ? (timestamp as { toDate: () => Date }).toDate()
         : new Date(timestamp as string | number);
+    if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',

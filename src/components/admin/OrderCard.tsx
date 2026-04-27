@@ -18,6 +18,7 @@ import {
 import { formatBRL, formatDate } from '@/utils/format';
 import { openShippingLabel } from '@/utils/printLabel';
 import { cn } from '@/utils/cn';
+import OrderItemVisualRow from '@/components/orders/OrderItemVisualRow';
 
 function onlyDigits(v: string): string {
   return (v || '').replace(/\D/g, '');
@@ -225,24 +226,21 @@ export default function OrderCard({ order, onStatusChange, onPaymentStatusChange
               {order.items.map((i, idx) => (
                 <li
                   key={`${i.productId}-${idx}`}
-                  className="flex gap-3 border-b border-white/5 pb-3 last:border-b-0"
+                  className="flex items-start gap-3 border-b border-white/5 pb-3 last:border-b-0"
                 >
-                  <div className="h-16 w-14 shrink-0 overflow-hidden">
-                    <img src={i.image} alt="" className="h-full w-full object-cover" />
-                  </div>
+                  <OrderItemVisualRow item={i} size="md" />
                   <div className="min-w-0 flex-1">
                     <p className="heading-display text-sm text-king-fg">{i.name}</p>
                     <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-king-silver/70">
                       {i.size} · {i.quantity}x · {formatBRL(i.price)}
                     </p>
-                    {i.stamp && (
-                      <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-king-red/90">
-                        Costas: {i.stamp.name}
-                      </p>
-                    )}
-                    {i.stampFront && (
-                      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-king-silver">
-                        Frente: {i.stampFront.name}
+                    {(i.stamp || i.stampFront) && (
+                      <p className="mt-1 font-mono text-[9px] uppercase leading-snug tracking-[0.16em] text-king-silver/75">
+                        {i.stamp && (
+                          <span className="text-king-red/90">Costas: {i.stamp.name}</span>
+                        )}
+                        {i.stamp && i.stampFront && <span className="text-king-silver/40"> · </span>}
+                        {i.stampFront && <span>Frente: {i.stampFront.name}</span>}
                       </p>
                     )}
                   </div>
