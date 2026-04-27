@@ -3,6 +3,8 @@
  * Em dev, Vite faz proxy /api → http://localhost:4000.
  */
 
+import type { CompactInventoryLine } from '@/utils/checkoutInventory';
+
 export interface ShippingOption {
   id: string;
   name: string;
@@ -49,6 +51,8 @@ export function createPaymentIntent(payload: {
   shippingCost: number;
   discount?: number;
   metadata?: Record<string, string>;
+  /** Linhas para validação/baixa de estoque no servidor (mesmo formato do webhook). */
+  inventoryLines?: CompactInventoryLine[];
 }): Promise<CreatePaymentIntentResponse> {
   return post('/api/checkout/create-payment-intent', payload);
 }

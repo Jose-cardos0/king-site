@@ -3,6 +3,13 @@ import { getStripe } from '../lib/stripe.js';
 import { handleQuote } from '../lib/superfrete.js';
 import { sendN8nTestNotification } from '../lib/n8nNotify.js';
 import { getEmailFromFirebaseIdToken, isAdminEmail } from '../lib/verifyAdminToken.js';
+import { getAdminFirestore } from '../lib/firebaseAdmin.js';
+import {
+  assertInventoryAvailable,
+  attachInventoryToStripeMetadata,
+  buildCompactLinesFromUnknown,
+  serializeInventoryLines,
+} from '../lib/kingInventory.js';
 
 const router = Router();
 
@@ -57,12 +64,15 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
       discount = 0,
       currency = 'brl',
       metadata = {},
+      inventoryLines,
     } = (req.body ?? {}) as {
       subtotal?: number;
       shippingCost?: number;
       discount?: number;
       currency?: string;
       metadata?: Record<string, string>;
+      /** Linhas de estoque: [[productId, qty, backStampId, frontStampId], …] */
+      inventoryLines?: unknown;
     };
 
     if (typeof subtotal !== 'number' || subtotal <= 0) {
@@ -85,6 +95,39 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
       return;
     }
 
+    const safeMeta: Record<string, string> = { ...metadata };
+    for (const k of Object.keys(safeMeta)) {
+      if (k === 'king_inv' || k.startsWith('king_inv_')) delete safeMeta[k];
+    }
+
+    let inventoryJson: string | null = null;
+    if (inventoryLines !== undefined && inventoryLines !== null) {
+      if (!Array.isArray(inventoryLines)) {
+        res.status(400).json({ error: 'inventoryLines inválido' });
+        return;
+      }
+      if (inventoryLines.length > 0) {
+        const parsed = buildCompactLinesFromUnknown(inventoryLines);
+        if (!parsed) {
+          res.status(400).json({ error: 'Formato de inventoryLines inválido' });
+          return;
+        }
+        const db = getAdminFirestore();
+        if (db) {
+          const check = await assertInventoryAvailable(db, parsed);
+          if (!check.ok) {
+            res.status(409).json({ error: check.message });
+            return;
+          }
+        } else {
+          console.warn(
+            '[checkout] FIREBASE_SERVICE_ACCOUNT_JSON ausente — não foi possível validar estoque antes do pagamento'
+          );
+        }
+        inventoryJson = serializeInventoryLines(parsed);
+      }
+    }
+
     /**
      * Tipos explícitos + parcelas no cartão: com `automatic_payment_methods`, a Stripe
      * recomenda não definir `installments.enabled` (conflito com “dynamic payment methods”),
@@ -103,12 +146,15 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
           },
         },
       },
-      metadata: {
-        ...metadata,
-        subtotal_brl: subtotal.toFixed(2),
-        shipping_brl: shippingCost.toFixed(2),
-        discount_brl: safeDiscount.toFixed(2),
-      },
+      metadata: attachInventoryToStripeMetadata(
+        {
+          ...safeMeta,
+          subtotal_brl: subtotal.toFixed(2),
+          shipping_brl: shippingCost.toFixed(2),
+          discount_brl: safeDiscount.toFixed(2),
+        },
+        inventoryJson ?? '[]'
+      ),
     });
 
     res.json({

@@ -10,6 +10,7 @@ import {
   HiOutlineX,
 } from 'react-icons/hi';
 import { deleteField } from 'firebase/firestore';
+import { totalStockFromBySize } from '@/utils/inventory';
 import {
   createProduct,
   deleteProduct,
@@ -464,6 +465,13 @@ function ProductModal({
     category: product?.category ?? 'oversized',
     sizes: product?.sizes ?? ['M', 'G'],
     stock: product?.stock ?? 10,
+    stockBySize: product?.stockBySize
+      ? { ...product.stockBySize }
+      : (() => {
+          const init: Partial<Record<ProductSize, number | null>> = {};
+          for (const s of product?.sizes ?? ['M', 'G']) init[s] = 0;
+          return init;
+        })(),
     featured: product?.featured ?? false,
     tag: product?.tag,
   });
@@ -538,11 +546,31 @@ function ProductModal({
     setForm((f) => ({ ...f, [k]: v }));
 
   const toggleSize = (s: ProductSize) => {
-    setForm((f) => ({
-      ...f,
-      sizes: f.sizes.includes(s) ? f.sizes.filter((x) => x !== s) : [...f.sizes, s],
-    }));
+    setForm((f) => {
+      const has = f.sizes.includes(s);
+      const sizes = has ? f.sizes.filter((x) => x !== s) : [...f.sizes, s];
+      const map: Partial<Record<ProductSize, number | null>> = { ...(f.stockBySize ?? {}) };
+      if (has) {
+        delete map[s];
+      } else if (!(s in map)) {
+        map[s] = 0;
+      }
+      return { ...f, sizes, stockBySize: map };
+    });
   };
+
+  const setSizeStock = (s: ProductSize, qty: number) => {
+    setForm((f) => {
+      const map = { ...(f.stockBySize ?? {}) };
+      map[s] = Math.max(0, Math.floor(qty));
+      return { ...f, stockBySize: map };
+    });
+  };
+
+  const totalSizeStock = useMemo(() => {
+    const v = totalStockFromBySize(form.stockBySize);
+    return v ?? 0;
+  }, [form.stockBySize]);
 
   const toggleBackStamp = (id: string) => {
     setBackPick((prev) => {
@@ -816,10 +844,19 @@ function ProductModal({
         (c.side === 'back' || c.side === 'front')
     );
 
+    const cleanBySize: Partial<Record<ProductSize, number>> = {};
+    for (const s of form.sizes) {
+      const v = form.stockBySize?.[s];
+      cleanBySize[s] = typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0;
+    }
+    const totalStock = Object.values(cleanBySize).reduce((a, b) => a + b, 0);
+
     setSaving(true);
     try {
       const base = {
         ...form,
+        stockBySize: cleanBySize,
+        stock: totalStock,
         images,
         imageIds,
         stampCrossings: validCrossings,
@@ -1045,12 +1082,6 @@ function ProductModal({
                       }}
                       type="number"
                     />
-                    <Field
-                      label="Estoque"
-                      value={String(form.stock)}
-                      onChange={(v) => set('stock', parseInt(v) || 0)}
-                      type="number"
-                    />
                     <CategoryField
                       value={form.category}
                       onChange={(v) => set('category', v as ProductCategory)}
@@ -1081,6 +1112,49 @@ function ProductModal({
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <div className="mb-3 flex items-end justify-between gap-3">
+                      <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-king-silver/90 sm:text-xs">
+                        Estoque por tamanho
+                      </p>
+                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-king-silver/70 sm:text-[11px]">
+                        Total: <span className="text-king-red">{totalSizeStock}</span>
+                      </p>
+                    </div>
+                    {form.sizes.length === 0 ? (
+                      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-king-silver/60">
+                        Selecione ao menos um tamanho acima.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+                        {form.sizes.map((s) => {
+                          const v = form.stockBySize?.[s];
+                          const value = typeof v === 'number' ? String(v) : '0';
+                          return (
+                            <label
+                              key={s}
+                              className="flex flex-col gap-1.5 rounded-md border border-white/10 bg-king-black/25 p-2 [html.light_&]:border-black/[0.08] [html.light_&]:bg-white"
+                            >
+                              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver/85">
+                                {s}
+                              </span>
+                              <input
+                                type="number"
+                                min={0}
+                                value={value}
+                                onChange={(e) => setSizeStock(s, parseInt(e.target.value, 10) || 0)}
+                                className="input-king-panel font-mono text-sm"
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.18em] text-king-silver/55">
+                      Cada tamanho desconta sozinho ao confirmar pagamento. 0 = esgotado.
+                    </p>
                   </div>
                 </ProductModalSection>
               </div>
@@ -1535,8 +1609,20 @@ function ProductModal({
                       </div>
                     )}
                     <div className={resumeCard}>
-                      <dt className="text-king-silver/55">Estoque</dt>
-                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">{form.stock}</dd>
+                      <dt className="text-king-silver/55">Estoque total</dt>
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
+                        {totalSizeStock}
+                      </dd>
+                    </div>
+                    <div className={cn(resumeCard, 'sm:col-span-2')}>
+                      <dt className="text-king-silver/55">Estoque por tamanho</dt>
+                      <dd className="mt-1 text-sm normal-case tracking-normal text-king-fg">
+                        {form.sizes.length === 0
+                          ? '—'
+                          : form.sizes
+                              .map((s) => `${s}: ${form.stockBySize?.[s] ?? 0}`)
+                              .join('  ·  ')}
+                      </dd>
                     </div>
                     <div className={resumeCard}>
                       <dt className="text-king-silver/55">Categoria</dt>

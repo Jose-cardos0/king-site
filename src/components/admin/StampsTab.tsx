@@ -16,6 +16,7 @@ import {
 import { uploadStampImage } from '@/services/storage.service';
 import { useStampsStore } from '@/store/useStampsStore';
 import { cn } from '@/utils/cn';
+import { isStampSoldOut, stampIsLastUnit, stampStockRatioLabel } from '@/utils/inventory';
 import AdminPaginationBar, { ADMIN_PAGE_SIZE } from '@/components/admin/AdminPaginationBar';
 
 type EditorMode = 'create' | 'edit';
@@ -122,13 +123,14 @@ export default function StampsTab() {
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/10">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-king-jet font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/70">
               <tr>
                 <th className="p-4">Prévia</th>
                 <th className="p-4">Nome</th>
                 <th className="p-4">Coleção</th>
                 <th className="p-4">Lado</th>
+                <th className="p-4 text-right font-mono">Estoque</th>
                 <th className="p-4 text-right">Ações</th>
               </tr>
             </thead>
@@ -146,6 +148,32 @@ export default function StampsTab() {
                   <td className="p-3 font-mono text-xs text-king-silver">{r.coleção}</td>
                   <td className="p-3 font-mono text-[10px] uppercase tracking-[0.2em] text-king-red">
                     {r.side === 'back' ? 'Costas' : 'Frente'}
+                  </td>
+                  <td className="p-3 text-right">
+                    {r.stock === undefined || r.stock === null ? (
+                      <span className="font-mono text-sm text-king-silver">∞</span>
+                    ) : isStampSoldOut(r.stock) ? (
+                      <span
+                        className="inline-flex rounded border border-king-red/40 bg-king-red/20 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-king-bone backdrop-blur-[1px]"
+                        title="Stock 0 — não disponível na loja"
+                      >
+                        Esgotado
+                      </span>
+                    ) : stampIsLastUnit(r.stock) ? (
+                      <span
+                        className="inline-flex rounded bg-king-black/88 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-king-red"
+                        title="Última unidade em stock"
+                      >
+                        Última
+                      </span>
+                    ) : (
+                      <span
+                        className="rounded bg-king-black/80 px-2 py-0.5 font-mono text-xs font-semibold tracking-[0.12em] text-king-red"
+                        title="Disponível / total de vitrine"
+                      >
+                        {stampStockRatioLabel(r.stock, r.stockInitial)}
+                      </span>
+                    )}
                   </td>
                   <td className="p-3 text-right">
                     <button
@@ -184,6 +212,7 @@ export default function StampsTab() {
 
       {editor && (
         <StampEditorModal
+          key={editor.mode === 'edit' && editor.doc ? editor.doc.id : 'create'}
           mode={editor.mode}
           initial={editor.doc}
           existingColeções={coleções}
@@ -213,6 +242,17 @@ function StampEditorModal({
   const [side, setSide] = useState<StampSide>(initial?.side ?? 'back');
   const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? '');
   const [customId, setCustomId] = useState<string>(initial?.id ?? '');
+  const [stockUnlimited, setStockUnlimited] = useState(
+    () => initial === undefined || initial.stock === undefined || initial.stock === null
+  );
+  const [stockQty, setStockQty] = useState(() =>
+    typeof initial?.stock === 'number' ? String(initial.stock) : '0'
+  );
+  const [stockInitialQty, setStockInitialQty] = useState(() => {
+    if (typeof initial?.stockInitial === 'number') return String(initial.stockInitial);
+    if (typeof initial?.stock === 'number') return String(initial.stock);
+    return '0';
+  });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -273,22 +313,32 @@ function StampEditorModal({
     setSaving(true);
     try {
       if (mode === 'create') {
+        const q = Math.max(0, parseInt(stockQty, 10) || 0);
+        const cap = stockUnlimited ? undefined : Math.max(q, Math.max(0, parseInt(stockInitialQty, 10) || q));
         await createStamp(
           {
             name: name.trim(),
             coleção: coleção.trim(),
             side,
             imageUrl: imageUrl.trim(),
+            ...(stockUnlimited
+              ? {}
+              : { stock: q, stockInitial: cap }),
           },
           customId
         );
         toast.success('Estampa criada');
       } else if (initial) {
+        const q = Math.max(0, parseInt(stockQty, 10) || 0);
+        const cap = stockUnlimited ? undefined : Math.max(q, Math.max(0, parseInt(stockInitialQty, 10) || q));
         await updateStamp(initial.id, {
           name: name.trim(),
           coleção: coleção.trim(),
           side,
           imageUrl: imageUrl.trim(),
+          ...(stockUnlimited
+            ? { stock: null }
+            : { stock: q, stockInitial: cap }),
         });
         toast.success('Estampa atualizada');
       }
@@ -320,7 +370,7 @@ function StampEditorModal({
           aria-modal="true"
           aria-labelledby="stamp-editor-title"
           onClick={(e) => e.stopPropagation()}
-          className="h-fit w-full max-w-md self-center rounded-xl border border-king-ash/30 bg-king-jet p-5 shadow-2xl sm:p-6"
+          className="h-fit w-full max-w-md self-center rounded-xl border border-king-ash/30 bg-king-jet p-5 shadow-2xl sm:p-6 md:max-w-3xl md:p-7"
         >
           <div className="mb-5 flex items-start justify-between gap-3">
             <h3 id="stamp-editor-title" className="heading-display text-lg text-king-fg sm:text-xl">
@@ -342,74 +392,127 @@ function StampEditorModal({
             ))}
           </datalist>
 
-          <div className="space-y-5">
-            {mode === 'create' ? (
-              <label className="flex flex-col gap-2 rounded-md border border-king-red/25 bg-king-red/[0.04] p-3">
-                <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-king-red">
-                  ID único *
+          <div className="grid gap-6 md:grid-cols-2 md:items-start md:gap-8">
+            {/* Coluna esquerda: identificação, loja, estoque */}
+            <div className="space-y-5">
+              {mode === 'create' ? (
+                <label className="flex flex-col gap-2 rounded-md border border-king-red/25 bg-king-red/[0.04] p-3">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-king-red">
+                    ID único *
+                  </span>
+                  <input
+                    value={customId}
+                    onChange={(e) => setCustomId(normalizeCustomId(e.target.value))}
+                    className="input-king-panel font-mono tracking-[0.1em]"
+                    placeholder="ex.: cruz-sagrada-costas"
+                  />
+                  <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-king-silver/70">
+                    3-60 caracteres · letras minúsculas, números e hífens · não repetível
+                  </span>
+                </label>
+              ) : initial ? (
+                <div className="rounded-md border border-white/10 bg-king-black/30 p-3">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver/70">
+                    ID (não editável)
+                  </p>
+                  <p className="mt-1 font-mono text-sm tracking-[0.1em] text-king-fg">
+                    {initial.id}
+                  </p>
+                </div>
+              ) : null}
+              <label className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
+                  Nome na loja
                 </span>
                 <input
-                  value={customId}
-                  onChange={(e) => setCustomId(normalizeCustomId(e.target.value))}
-                  className="input-king-panel font-mono tracking-[0.1em]"
-                  placeholder="ex.: cruz-sagrada-costas"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input-king-panel font-mono text-sm"
+                  placeholder="Ex.: Cruz sagrada · costas"
                 />
-                <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-king-silver/70">
-                  3-60 caracteres · letras minúsculas, números e hífens · não repetível
-                </span>
               </label>
-            ) : initial ? (
-              <div className="rounded-md border border-white/10 bg-king-black/30 p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver/70">
-                  ID (não editável)
-                </p>
-                <p className="mt-1 font-mono text-sm tracking-[0.1em] text-king-fg">
-                  {initial.id}
-                </p>
-              </div>
-            ) : null}
-            <label className="flex flex-col gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
-                Nome na loja
-              </span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="input-king-panel font-mono text-sm"
-                placeholder="Ex.: Cruz sagrada · costas"
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
-                Coleção (agrupa no filtro da loja)
-              </span>
-              <input
-                value={coleção}
-                onChange={(e) => setColeção(e.target.value)}
-                list={datalistId}
-                className="input-king-panel font-mono text-sm"
-                placeholder="Ex.: Coleção sagrada, DROP JESUS…"
-              />
-            </label>
-            <label className="flex flex-col gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
-                Lado da peça
-              </span>
-              <select
-                value={side}
-                onChange={(e) => setSide(e.target.value as StampSide)}
-                className="select-king-dark font-mono text-xs"
-              >
-                <option value="back">Costas (verso)</option>
-                <option value="front">Frente (peito)</option>
-              </select>
-            </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
+                  Coleção (agrupa no filtro da loja)
+                </span>
+                <input
+                  value={coleção}
+                  onChange={(e) => setColeção(e.target.value)}
+                  list={datalistId}
+                  className="input-king-panel font-mono text-sm"
+                  placeholder="Ex.: Coleção sagrada, DROP JESUS…"
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
+                  Lado da peça
+                </span>
+                <select
+                  value={side}
+                  onChange={(e) => setSide(e.target.value as StampSide)}
+                  className="select-king-dark font-mono text-xs"
+                >
+                  <option value="back">Costas (verso)</option>
+                  <option value="front">Frente (peito)</option>
+                </select>
+              </label>
 
-            <div className="space-y-2">
+              <div className="rounded-md border border-white/10 bg-king-black/25 p-3">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={stockUnlimited}
+                    onChange={(e) => setStockUnlimited(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
+                      Estoque ilimitado
+                    </span>
+               
+                  </span>
+                </label>
+                {!stockUnlimited && (
+                  <div className="mt-3 space-y-3">
+                    <label className="flex flex-col gap-2">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-red">
+                        Unidades disponíveis (agora)
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={stockQty}
+                        onChange={(e) => setStockQty(e.target.value)}
+                        className="input-king-panel font-mono text-sm"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-2">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
+                        Total vitrine (X/Y)
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={stockInitialQty}
+                        onChange={(e) => setStockInitialQty(e.target.value)}
+                        className="input-king-panel font-mono text-sm"
+                      />
+                      <span className="font-serif text-[11px] italic leading-snug text-king-silver/65">
+                        O cliente vê “disponível / este número” (ex.: 9/10). Não muda nas vendas — só o
+                        disponível baixa.
+                      </span>
+                    </label>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Coluna direita: imagem e pré-visualização (desktop) */}
+            <div className="space-y-3 border-t border-white/10 pt-5 md:border-t-0 md:border-l md:pl-8 md:pt-0">
               <span className="block font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
                 Imagem
               </span>
-              <label className="inline-flex cursor-pointer items-center justify-center border border-king-red bg-king-red/90 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white shadow-sm transition hover:bg-king-glow">
+              <label className="inline-flex w-full cursor-pointer items-center justify-center border border-king-red bg-king-red/90 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.22em] text-white shadow-sm transition hover:bg-king-glow md:w-auto">
                 <input
                   type="file"
                   accept="image/*"
@@ -426,12 +529,18 @@ function StampEditorModal({
                 placeholder="URL da imagem (preenchida após upload)"
               />
               {imageUrl ? (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="h-28 w-full rounded-md object-contain ring-1 ring-white/10"
-                />
-              ) : null}
+                <div className="rounded-md border border-white/10 bg-king-black/40 p-2 ring-1 ring-white/10">
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="mx-auto max-h-32 w-full object-contain md:max-h-[min(320px,45vh)]"
+                  />
+                </div>
+              ) : (
+                <p className="rounded-md border border-dashed border-white/15 bg-king-black/20 py-8 text-center font-serif text-xs italic text-king-silver/60">
+                  Pré-visualização após URL ou upload
+                </p>
+              )}
             </div>
           </div>
 

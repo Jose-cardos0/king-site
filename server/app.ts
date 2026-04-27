@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import checkoutRouter from './routes/checkout.js';
 import { handleStripeWebhook } from './routes/stripeWebhook.js';
+import { getAdminFirestore } from './lib/firebaseAdmin.js';
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.get('/api/health', (_req, res) => {
     stripe: Boolean(process.env.STRIPE_SECRET_KEY),
     stripeWebhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
     superfrete: Boolean(process.env.SUPER_FRETE_API),
+    firestoreInventory: Boolean(getAdminFirestore()),
     time: new Date().toISOString(),
   });
 });

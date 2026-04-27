@@ -48,7 +48,16 @@ export interface Product {
   stampCrossings?: StampCrossing[];
   category: ProductCategory;
   sizes: ProductSize[];
-  stock: number;
+  /**
+   * Total de peças. Se `stockBySize` estiver presente, este valor é a soma e
+   * fica em sincronia com cada chave. Ausente/null = sem limite global.
+   */
+  stock?: number | null;
+  /**
+   * Quantidades por tamanho (ex.: `{ G: 1, GG: 5, XGG: 4 }`).
+   * Chave ausente / null = sem limite naquele tamanho. Número ≤ 0 = esgotado naquele tamanho.
+   */
+  stockBySize?: Partial<Record<ProductSize, number | null>>;
   featured?: boolean;
   tag?: string;
   createdAt?: unknown;

@@ -10,4 +10,8 @@ export interface Stamp {
   src: string;
   /** Identificador auxiliar (ex.: id do documento Firestore). */
   file: string;
+  /** `undefined`/`null` = estoque ilimitado. */
+  stock?: number | null;
+  /** Referência máx. para vitrine “n/m” (opcional). */
+  stockInitial?: number | null;
 }

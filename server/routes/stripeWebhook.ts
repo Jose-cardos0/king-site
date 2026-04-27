@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 import type Stripe from 'stripe';
 import { getStripe } from '../lib/stripe.js';
 import { notifyWhatsapp, postToN8n } from '../lib/n8nNotify.js';
+import { getAdminFirestore } from '../lib/firebaseAdmin.js';
+import { applyInventoryDeduction, readInventoryJsonFromStripeMetadata } from '../lib/kingInventory.js';
 
 /**
  * Webhook Stripe → valida assinatura → POST no n8n (ex.: notificar WhatsApp).
@@ -51,6 +53,25 @@ export async function handleStripeWebhook(req: Request, res: Response): Promise<
   const pi = event.data.object as Stripe.PaymentIntent;
   const amountCents = typeof pi.amount_received === 'number' ? pi.amount_received : pi.amount;
   const amountBrl = amountCents / 100;
+
+  const invJson = readInventoryJsonFromStripeMetadata(
+    pi.metadata as Record<string, string> | null | undefined
+  );
+  const db = getAdminFirestore();
+  if (db && invJson && invJson !== '[]') {
+    const inv = await applyInventoryDeduction(db, pi.id, invJson);
+    if (!inv.ok) {
+      console.error(
+        '[stripe-webhook] Baixa de estoque falhou (venda já paga — rever manualmente):',
+        inv.error
+      );
+    }
+  } else if (!db && invJson && invJson !== '[]') {
+    console.warn(
+      '[stripe-webhook] FIREBASE_SERVICE_ACCOUNT_JSON ausente — estoque não foi baixado para',
+      pi.id
+    );
+  }
 
   const payload = {
     source: 'king-stripe-webhook',

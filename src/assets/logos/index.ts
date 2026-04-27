@@ -10,6 +10,9 @@ export interface FrontLogoStamp {
   id: string;
   name: string;
   src: string;
+  /** Logos estáticos não têm estoque; estampas Firebase na frente podem ter. */
+  stock?: number | null;
+  stockInitial?: number | null;
 }
 
 /** Id da variante preta — útil para estilo (logo escuro em fundo escuro). */

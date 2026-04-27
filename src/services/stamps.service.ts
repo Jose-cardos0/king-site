@@ -1,6 +1,7 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -37,6 +38,16 @@ export interface FirestoreStampDoc {
   coleção: string;
   side: StampSide;
   imageUrl: string;
+  /**
+   * Unidades disponíveis desta estampa (global, não por produto).
+   * Ausente ou `null` = sem limite (não baixa no webhook).
+   */
+  stock?: number | null;
+  /**
+   * Referência máxima para vitrine “atual / máx.” (ex.: 9/10). Não é alterada na venda.
+   * Se ausente, o cliente vê só o numerador igual ao atual até repor no admin.
+   */
+  stockInitial?: number | null;
 }
 
 type StampInput = Omit<FirestoreStampDoc, 'id'>;
@@ -56,6 +67,17 @@ export async function listStamps(): Promise<FirestoreStampDoc[]> {
   const list: FirestoreStampDoc[] = snap.docs.map((d) => {
     const raw = d.data() as Record<string, unknown>;
     const side: StampSide = raw.side === 'front' ? 'front' : 'back';
+    let stock: number | null | undefined;
+    if (raw.stock === null) stock = null;
+    else if (typeof raw.stock === 'number' && !Number.isNaN(raw.stock)) stock = raw.stock;
+    else stock = undefined;
+
+    let stockInitial: number | null | undefined;
+    if (raw.stockInitial === null) stockInitial = null;
+    else if (typeof raw.stockInitial === 'number' && !Number.isNaN(raw.stockInitial)) {
+      stockInitial = raw.stockInitial;
+    } else stockInitial = undefined;
+
     return {
       id: d.id,
       name: typeof raw.name === 'string' ? raw.name : '',
@@ -65,6 +87,8 @@ export async function listStamps(): Promise<FirestoreStampDoc[]> {
           : 'Catálogo online',
       side,
       imageUrl: typeof raw.imageUrl === 'string' ? raw.imageUrl : '',
+      stock,
+      stockInitial,
     };
   });
   list.sort(sortStamps);
@@ -84,19 +108,29 @@ export async function createStamp(
   if (existing.exists()) {
     throw new Error('Já existe uma estampa com esse ID. Escolha outro.');
   }
-  await setDoc(ref, {
+  const payload: Record<string, unknown> = {
     name: input.name.trim(),
     coleção: normalizeColeção(input.coleção),
     side: input.side,
     imageUrl: input.imageUrl,
     createdAt: serverTimestamp(),
-  });
+  };
+  if (input.stock !== undefined && input.stock !== null) {
+    const n = Math.max(0, Math.floor(input.stock));
+    payload.stock = n;
+    const iniRaw =
+      typeof input.stockInitial === 'number' && !Number.isNaN(input.stockInitial)
+        ? Math.floor(input.stockInitial)
+        : n;
+    payload.stockInitial = Math.max(n, iniRaw);
+  }
+  await setDoc(ref, payload);
   return id;
 }
 
 export async function updateStamp(
   id: string,
-  patch: Partial<Pick<StampInput, 'name' | 'coleção' | 'side' | 'imageUrl'>>
+  patch: Partial<Pick<StampInput, 'name' | 'coleção' | 'side' | 'imageUrl' | 'stock' | 'stockInitial'>>
 ): Promise<void> {
   const ref = doc(db, COLLECTION, id);
   const data: Record<string, unknown> = {};
@@ -104,6 +138,16 @@ export async function updateStamp(
   if (patch.coleção !== undefined) data.coleção = normalizeColeção(patch.coleção);
   if (patch.side !== undefined) data.side = patch.side;
   if (patch.imageUrl !== undefined) data.imageUrl = patch.imageUrl;
+  if (patch.stock !== undefined) {
+    if (patch.stock === null) {
+      data.stock = deleteField();
+      data.stockInitial = deleteField();
+    } else data.stock = Math.max(0, Math.floor(patch.stock));
+  }
+  if (patch.stockInitial !== undefined) {
+    if (patch.stockInitial === null) data.stockInitial = deleteField();
+    else data.stockInitial = Math.max(0, Math.floor(patch.stockInitial));
+  }
   await updateDoc(ref, data);
 }
 

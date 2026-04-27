@@ -12,6 +12,7 @@ import GlowButton from '@/components/ui/GlowButton';
 import PaymentCardShell from '@/components/checkout/PaymentCardShell';
 import { getStripe } from '@/lib/stripe';
 import { createPaymentIntent } from '@/services/checkout.api';
+import type { CompactInventoryLine } from '@/utils/checkoutInventory';
 import { formatBRL } from '@/utils/format';
 import { cn } from '@/utils/cn';
 import { useMatchMedia } from '@/hooks/useMatchMedia';
@@ -66,6 +67,8 @@ type Props = {
   total: number;
   onPaid: OnPaid;
   metadata?: Record<string, string>;
+  /** Sacola atual — o servidor valida estoque e grava no PaymentIntent para o webhook. */
+  inventoryLines?: CompactInventoryLine[];
   disabled?: boolean;
 };
 
@@ -82,6 +85,11 @@ export default function StripePaymentForm(props: Props) {
     [theme, narrowViewport]
   );
 
+  const inventoryKey = useMemo(
+    () => JSON.stringify(props.inventoryLines ?? []),
+    [props.inventoryLines]
+  );
+
   useEffect(() => {
     let cancel = false;
     setLoading(true);
@@ -90,6 +98,7 @@ export default function StripePaymentForm(props: Props) {
       shippingCost: props.shippingCost,
       discount: props.discount ?? 0,
       metadata: props.metadata,
+      inventoryLines: props.inventoryLines ?? [],
     })
       .then((r) => {
         if (cancel) return;
@@ -107,7 +116,7 @@ export default function StripePaymentForm(props: Props) {
       cancel = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.subtotal, props.shippingCost, props.discount]);
+  }, [props.subtotal, props.shippingCost, props.discount, inventoryKey]);
 
   if (loading) {
     return (

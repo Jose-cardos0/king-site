@@ -29,6 +29,16 @@ import {
   kingLogoPretoOnDarkImgClass,
   type FrontLogoStamp,
 } from '@/assets/logos';
+import {
+  availableSizesForProduct,
+  effectiveProductSizeStock,
+  effectiveStampStock,
+  isProductSizeSoldOut,
+  isProductSoldOut,
+  isStampSoldOut,
+  stampIsLastUnit,
+  stampStockRatioLabel,
+} from '@/utils/inventory';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -71,6 +81,55 @@ export default function ProductDetail() {
     const ids = getEffectiveBackStampIds(product);
     return mergedBack.filter((o) => ids.includes(o.id));
   }, [product, mergedBack]);
+
+  const productSoldOut = useMemo(
+    () => {
+      if (!product) return false;
+      if (isProductSoldOut(product.stock)) return true;
+      // Se todos os tamanhos rastreados estiverem esgotados, considera o produto esgotado.
+      const avail = availableSizesForProduct(product);
+      return avail.length === 0;
+    },
+    [product]
+  );
+
+  const sizeSoldOut = useMemo(
+    () => (product && size ? isProductSizeSoldOut(product, size) : false),
+    [product, size]
+  );
+
+  const maxOrderQty = useMemo(() => {
+    if (!product) return 99;
+    let m = size ? effectiveProductSizeStock(product, size) : Number.POSITIVE_INFINITY;
+    if (stamp) m = Math.min(m, effectiveStampStock(stamp.stock));
+    if (stampFront) m = Math.min(m, effectiveStampStock(stampFront.stock));
+    if (!Number.isFinite(m)) return 99;
+    return Math.max(1, Math.min(99, m));
+  }, [product, size, stamp, stampFront]);
+
+  useEffect(() => {
+    setQuantity((q) => Math.min(q, maxOrderQty));
+  }, [maxOrderQty]);
+
+  // Se o tamanho atualmente selecionado ficou esgotado (ou nenhum foi escolhido), pega o primeiro disponível.
+  useEffect(() => {
+    if (!product) return;
+    if (size && !isProductSizeSoldOut(product, size)) return;
+    const avail = availableSizesForProduct(product);
+    if (avail.length === 0) {
+      setSize(null);
+      return;
+    }
+    if (!size || !avail.includes(size)) {
+      setSize(avail[0]);
+    }
+  }, [product, size]);
+
+  useEffect(() => {
+    if (!product) return;
+    if (stamp && isStampSoldOut(stamp.stock)) setStamp(null);
+    if (stampFront && isStampSoldOut(stampFront.stock)) setStampFront(null);
+  }, [product, stamp, stampFront]);
 
   const preview = useMemo(() => {
     const fallback = product?.images[selectedImage] ?? '';
@@ -231,8 +290,24 @@ export default function ProductDetail() {
   });
 
   const addToCart = () => {
+    if (productSoldOut) {
+      toast.error('Esta peça está esgotada');
+      return;
+    }
+    if (stamp && isStampSoldOut(stamp.stock)) {
+      toast.error('Estampa de costas esgotada');
+      return;
+    }
+    if (stampFront && isStampSoldOut(stampFront.stock)) {
+      toast.error('Estampa de frente esgotada');
+      return;
+    }
     if (!size) {
       toast.error('Selecione um tamanho');
+      return;
+    }
+    if (product && isProductSizeSoldOut(product, size)) {
+      toast.error(`Tamanho ${size} esgotado`);
       return;
     }
     add(buildCartItem());
@@ -245,8 +320,24 @@ export default function ProductDetail() {
   };
 
   const buyNow = () => {
+    if (productSoldOut) {
+      toast.error('Esta peça está esgotada');
+      return;
+    }
+    if (stamp && isStampSoldOut(stamp.stock)) {
+      toast.error('Estampa de costas esgotada');
+      return;
+    }
+    if (stampFront && isStampSoldOut(stampFront.stock)) {
+      toast.error('Estampa de frente esgotada');
+      return;
+    }
     if (!size) {
       toast.error('Selecione um tamanho');
+      return;
+    }
+    if (product && isProductSizeSoldOut(product, size)) {
+      toast.error(`Tamanho ${size} esgotado`);
       return;
     }
     add(buildCartItem());
@@ -281,6 +372,15 @@ export default function ProductDetail() {
         >
           <HiArrowNarrowLeft /> Voltar à coleção
         </Link>
+
+        {productSoldOut && (
+          <div
+            className="mb-6 rounded-md border border-king-red/45 bg-king-red/25 px-4 py-3 text-center font-mono text-xs font-semibold uppercase tracking-[0.35em] text-king-bone shadow-[0_0_24px_rgba(220,20,60,0.18)] backdrop-blur-[1px] md:text-sm"
+            role="status"
+          >
+            Esgotado
+          </div>
+        )}
 
         {totalMobileSteps > 1 && (
           <div className="md:hidden mb-6 flex flex-col items-center gap-3">
@@ -488,10 +588,31 @@ export default function ProductDetail() {
                   {/* Desktop: carrossel 4 por página */}
                   <div className="mt-3 hidden md:block">
                     <StampCarousel
-                      items={backOptions.map((o) => ({ id: o.id, name: o.name, src: o.src }))}
+                      items={backOptions.map((o) => {
+                        const unlimited = o.stock === undefined || o.stock === null;
+                        const soldOut = isStampSoldOut(o.stock);
+                        const ratio =
+                          !unlimited && typeof o.stock === 'number' && !soldOut
+                            ? stampStockRatioLabel(o.stock, o.stockInitial)
+                            : null;
+                        const ultima =
+                          !unlimited &&
+                          typeof o.stock === 'number' &&
+                          !soldOut &&
+                          stampIsLastUnit(o.stock);
+                        return {
+                          id: o.id,
+                          name: o.name,
+                          src: o.src,
+                          soldOut,
+                          captionRatio: ratio,
+                          showUltima: ultima,
+                        };
+                      })}
                       selectedId={stamp?.id ?? null}
                       onSelect={(picked) => {
                         if (!picked) return setStamp(null);
+                        if (picked.soldOut) return;
                         const target = backOptions.find((o) => o.id === picked.id);
                         if (!target) return;
                         setStamp(stamp?.id === target.id ? null : target);
@@ -504,10 +625,31 @@ export default function ProductDetail() {
                   {/* Mobile: carrossel 3 por página + preview embaixo */}
                   <div className="mt-3 md:hidden">
                     <StampCarousel
-                      items={backOptions.map((o) => ({ id: o.id, name: o.name, src: o.src }))}
+                      items={backOptions.map((o) => {
+                        const unlimited = o.stock === undefined || o.stock === null;
+                        const soldOut = isStampSoldOut(o.stock);
+                        const ratio =
+                          !unlimited && typeof o.stock === 'number' && !soldOut
+                            ? stampStockRatioLabel(o.stock, o.stockInitial)
+                            : null;
+                        const ultima =
+                          !unlimited &&
+                          typeof o.stock === 'number' &&
+                          !soldOut &&
+                          stampIsLastUnit(o.stock);
+                        return {
+                          id: o.id,
+                          name: o.name,
+                          src: o.src,
+                          soldOut,
+                          captionRatio: ratio,
+                          showUltima: ultima,
+                        };
+                      })}
                       selectedId={stamp?.id ?? null}
                       onSelect={(picked) => {
                         if (!picked) return setStamp(null);
+                        if (picked.soldOut) return;
                         const target = backOptions.find((o) => o.id === picked.id);
                         if (!target) return;
                         setStamp(stamp?.id === target.id ? null : target);
@@ -553,15 +695,32 @@ export default function ProductDetail() {
               {/* Desktop: carrossel 3 por página */}
               <div className="mt-3 hidden md:block">
                 <StampCarousel
-                  items={frontOptions.map((o) => ({
-                    id: o.id,
-                    name: o.name.replace(/^KING · /, ''),
-                    src: o.src,
-                    imgExtraClass: o.id === FRONT_LOGO_PRETO_ID ? kingLogoPretoOnDarkImgClass : undefined,
-                  }))}
+                  items={frontOptions.map((o) => {
+                    const unlimited = o.stock === undefined || o.stock === null;
+                    const soldOut = isStampSoldOut(o.stock);
+                    const ratio =
+                      !unlimited && typeof o.stock === 'number' && !soldOut
+                        ? stampStockRatioLabel(o.stock, o.stockInitial)
+                        : null;
+                    const ultima =
+                      !unlimited &&
+                      typeof o.stock === 'number' &&
+                      !soldOut &&
+                      stampIsLastUnit(o.stock);
+                    return {
+                      id: o.id,
+                      name: o.name.replace(/^KING · /, ''),
+                      src: o.src,
+                      imgExtraClass: o.id === FRONT_LOGO_PRETO_ID ? kingLogoPretoOnDarkImgClass : undefined,
+                      soldOut,
+                      captionRatio: ratio,
+                      showUltima: ultima,
+                    };
+                  })}
                   selectedId={stampFront?.id ?? null}
                   onSelect={(picked) => {
                     if (!picked) return setStampFront(null);
+                    if (picked.soldOut) return;
                     const target = frontOptions.find((o) => o.id === picked.id);
                     if (!target) return;
                     setStampFront(stampFront?.id === target.id ? null : target);
@@ -575,15 +734,32 @@ export default function ProductDetail() {
               {/* Mobile: carrossel 2 por página + preview combinado embaixo */}
               <div className="mt-3 md:hidden">
                 <StampCarousel
-                  items={frontOptions.map((o) => ({
-                    id: o.id,
-                    name: o.name.replace(/^KING · /, ''),
-                    src: o.src,
-                    imgExtraClass: o.id === FRONT_LOGO_PRETO_ID ? kingLogoPretoOnDarkImgClass : undefined,
-                  }))}
+                  items={frontOptions.map((o) => {
+                    const unlimited = o.stock === undefined || o.stock === null;
+                    const soldOut = isStampSoldOut(o.stock);
+                    const ratio =
+                      !unlimited && typeof o.stock === 'number' && !soldOut
+                        ? stampStockRatioLabel(o.stock, o.stockInitial)
+                        : null;
+                    const ultima =
+                      !unlimited &&
+                      typeof o.stock === 'number' &&
+                      !soldOut &&
+                      stampIsLastUnit(o.stock);
+                    return {
+                      id: o.id,
+                      name: o.name.replace(/^KING · /, ''),
+                      src: o.src,
+                      imgExtraClass: o.id === FRONT_LOGO_PRETO_ID ? kingLogoPretoOnDarkImgClass : undefined,
+                      soldOut,
+                      captionRatio: ratio,
+                      showUltima: ultima,
+                    };
+                  })}
                   selectedId={stampFront?.id ?? null}
                   onSelect={(picked) => {
                     if (!picked) return setStampFront(null);
+                    if (picked.soldOut) return;
                     const target = frontOptions.find((o) => o.id === picked.id);
                     if (!target) return;
                     setStampFront(stampFront?.id === target.id ? null : target);
@@ -643,20 +819,32 @@ export default function ProductDetail() {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-1.5 md:gap-2">
-                  {product.sizes.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setSize(s)}
-                      className={cn(
-                        'h-9 min-w-[40px] border px-3 font-mono text-xs uppercase tracking-[0.2em] transition md:h-12 md:min-w-[52px] md:px-4 md:text-sm md:tracking-[0.25em]',
-                        size === s
-                          ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
-                          : 'border-white/15 text-king-silver [html.light_&]:border-king-ink/25 [html.light_&]:text-king-ink/80 hover:border-king-red hover:text-king-fg [html.light_&]:hover:border-king-red [html.light_&]:hover:text-king-ink'
-                      )}
-                    >
-                      {s}
-                    </button>
-                  ))}
+                  {product.sizes.map((s) => {
+                    const out = isProductSizeSoldOut(product, s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          if (out) return;
+                          setSize(s);
+                        }}
+                        disabled={out}
+                        title={out ? 'Esgotado' : undefined}
+                        aria-disabled={out}
+                        className={cn(
+                          'relative h-9 min-w-[40px] border px-3 font-mono text-xs uppercase tracking-[0.2em] transition md:h-12 md:min-w-[52px] md:px-4 md:text-sm md:tracking-[0.25em]',
+                          out
+                            ? 'cursor-not-allowed border-white/10 bg-king-black/30 text-king-silver/30 line-through opacity-50 [html.light_&]:border-king-ink/15 [html.light_&]:bg-stone-200/60 [html.light_&]:text-king-ink/35'
+                            : size === s
+                              ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
+                              : 'border-white/15 text-king-silver [html.light_&]:border-king-ink/25 [html.light_&]:text-king-ink/80 hover:border-king-red hover:text-king-fg [html.light_&]:hover:border-king-red [html.light_&]:hover:text-king-ink'
+                        )}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -666,8 +854,10 @@ export default function ProductDetail() {
                 </p>
                 <div className="inline-flex items-center border border-white/15 [html.light_&]:border-king-ink/25">
                   <button
+                    type="button"
+                    disabled={productSoldOut || quantity <= 1}
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="h-9 w-9 text-king-silver hover:text-king-red md:h-11 md:w-11 [html.light_&]:text-king-ink/70 [html.light_&]:hover:text-king-red"
+                    className="h-9 w-9 text-king-silver hover:text-king-red disabled:opacity-30 md:h-11 md:w-11 [html.light_&]:text-king-ink/70 [html.light_&]:hover:text-king-red"
                   >
                     −
                   </button>
@@ -675,8 +865,10 @@ export default function ProductDetail() {
                     {quantity}
                   </span>
                   <button
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="h-9 w-9 text-king-silver hover:text-king-red md:h-11 md:w-11 [html.light_&]:text-king-ink/70 [html.light_&]:hover:text-king-red"
+                    type="button"
+                    disabled={productSoldOut || quantity >= maxOrderQty}
+                    onClick={() => setQuantity((q) => Math.min(maxOrderQty, q + 1))}
+                    className="h-9 w-9 text-king-silver hover:text-king-red disabled:opacity-30 md:h-11 md:w-11 [html.light_&]:text-king-ink/70 [html.light_&]:hover:text-king-red"
                   >
                     +
                   </button>
@@ -688,14 +880,16 @@ export default function ProductDetail() {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={addToCart}
-                className="btn-king flex-1 group"
+                disabled={productSoldOut || sizeSoldOut}
+                className="btn-king flex-1 group disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <HiOutlineShoppingCart /> Adicionar à sacola
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={buyNow}
-                className="btn-ghost flex-1"
+                disabled={productSoldOut || sizeSoldOut}
+                className="btn-ghost flex-1 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Comprar agora
               </motion.button>
@@ -709,18 +903,44 @@ export default function ProductDetail() {
             </div>
 
             <AnimatePresence>
-              {product.stock <= 10 && (
-                <motion.p
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    'mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-king-glow',
-                    currentStepKey !== 'info' && 'hidden md:block'
-                  )}
-                >
-                  ⚡ Apenas {product.stock} peças em estoque
-                </motion.p>
-              )}
+              {(() => {
+                const sizeStockNum = size
+                  ? effectiveProductSizeStock(product, size)
+                  : Number.POSITIVE_INFINITY;
+                if (size && Number.isFinite(sizeStockNum) && sizeStockNum > 0 && sizeStockNum <= 10) {
+                  return (
+                    <motion.p
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        'mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-king-glow',
+                        currentStepKey !== 'info' && 'hidden md:block'
+                      )}
+                    >
+                      ⚡ Apenas {sizeStockNum} peças no tamanho {size}
+                    </motion.p>
+                  );
+                }
+                if (
+                  typeof product.stock === 'number' &&
+                  product.stock > 0 &&
+                  product.stock <= 10
+                ) {
+                  return (
+                    <motion.p
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        'mt-4 font-mono text-[11px] uppercase tracking-[0.3em] text-king-glow',
+                        currentStepKey !== 'info' && 'hidden md:block'
+                      )}
+                    >
+                      ⚡ Apenas {product.stock} peças em estoque
+                    </motion.p>
+                  );
+                }
+                return null;
+              })()}
             </AnimatePresence>
 
             <div
@@ -772,7 +992,8 @@ export default function ProductDetail() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={addToCart}
-              className="btn-king flex-1"
+              disabled={productSoldOut || sizeSoldOut}
+              className="btn-king flex-1 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Adicionar à sacola
             </motion.button>
@@ -785,7 +1006,8 @@ export default function ProductDetail() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={buyNow}
-              className="btn-ghost w-full"
+              disabled={productSoldOut || sizeSoldOut}
+              className="btn-ghost w-full disabled:cursor-not-allowed disabled:opacity-40"
             >
               Comprar agora
             </motion.button>
@@ -801,7 +1023,16 @@ export default function ProductDetail() {
   );
 }
 
-type CarouselItem = { id: string; name: string; src: string; imgExtraClass?: string };
+type CarouselItem = {
+  id: string;
+  name: string;
+  src: string;
+  imgExtraClass?: string;
+  soldOut?: boolean;
+  /** Ex.: "9/10"; `null` = estoque ilimitado (mostra o nome). */
+  captionRatio?: string | null;
+  showUltima?: boolean;
+};
 
 function StampCarousel({
   items,
@@ -878,17 +1109,35 @@ function StampCarousel({
                 <button
                   key={opt.id}
                   type="button"
-                  onClick={() => onSelect(active ? null : opt)}
+                  disabled={opt.soldOut}
+                  onClick={() => {
+                    if (opt.soldOut) return;
+                    onSelect(active ? null : opt);
+                  }}
                   className={cn(
                     'group flex flex-col items-center gap-1.5 overflow-hidden rounded-md border p-2 transition',
                     tileClassName,
                     active
                       ? 'border-king-red bg-king-red/[0.08] ring-1 ring-king-red/40'
-                      : 'border-white/10 bg-king-black/30 active:scale-[0.98] hover:border-king-red/50 [html.light_&]:border-king-ink/15 [html.light_&]:bg-white'
+                      : 'border-white/10 bg-king-black/30 active:scale-[0.98] hover:border-king-red/50 [html.light_&]:border-king-ink/15 [html.light_&]:bg-white',
+                    opt.soldOut && 'cursor-not-allowed opacity-70 hover:border-white/10'
                   )}
-                  title={opt.name}
+                  title={
+                    opt.soldOut
+                      ? `${opt.name} — esgotado`
+                      : opt.showUltima
+                        ? `${opt.name} — última unidade`
+                        : opt.captionRatio
+                          ? `${opt.name} · ${opt.captionRatio}`
+                          : opt.name
+                  }
                 >
-                  <div className={cn('flex w-full items-center justify-center', thumbHeightClass)}>
+                  <div
+                    className={cn(
+                      'relative flex w-full items-center justify-center',
+                      thumbHeightClass
+                    )}
+                  >
                     <img
                       src={opt.src}
                       alt={opt.name}
@@ -898,10 +1147,36 @@ function StampCarousel({
                         opt.imgExtraClass
                       )}
                     />
+                    {opt.soldOut && (
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-king-red/45 px-0.5 backdrop-blur-[1px]">
+                        <span className="text-center font-mono text-[7px] font-bold uppercase leading-tight tracking-[0.12em] text-king-bone drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-[8px]">
+                          Esgotado
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <span className="line-clamp-2 w-full text-center font-mono text-[9px] uppercase leading-tight tracking-[0.18em] text-king-silver">
-                    {opt.name}
-                  </span>
+                  <div className="flex w-full flex-col items-center gap-1">
+                    {opt.soldOut ? (
+                      <span className="w-full text-center font-mono text-[9px] font-semibold uppercase tracking-[0.2em] text-king-silver/75">
+                        Esgotado
+                      </span>
+                    ) : opt.showUltima ? (
+                      <span className="rounded bg-king-black/88 px-1.5 py-0.5 font-mono text-[7px] font-semibold uppercase tracking-[0.22em] text-king-red sm:text-[8px]">
+                        Última
+                      </span>
+                    ) : (
+                      <span
+                        className={cn(
+                          'w-full text-center font-mono text-[9px] uppercase leading-tight tracking-[0.15em]',
+                          opt.captionRatio
+                            ? 'rounded bg-king-black/85 px-1.5 py-0.5 font-semibold text-king-red'
+                            : 'line-clamp-2 text-king-silver'
+                        )}
+                      >
+                        {opt.captionRatio ?? opt.name}
+                      </span>
+                    )}
+                  </div>
                 </button>
               );
             })}

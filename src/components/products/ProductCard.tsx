@@ -5,6 +5,7 @@ import type { Product } from '@/services/products.service';
 import { formatBRL } from '@/utils/format';
 import { useCartStore } from '@/store/useCartStore';
 import toast from 'react-hot-toast';
+import { availableSizesForProduct, isProductSoldOut } from '@/utils/inventory';
 
 interface Props {
   product: Product;
@@ -15,16 +16,23 @@ export default function ProductCard({ product, index = 0 }: Props) {
   const add = useCartStore((s) => s.add);
   const img1 = product.images?.[0];
   const img2 = product.images?.[1] ?? img1;
+  const availSizes = availableSizesForProduct(product);
+  const soldOut = isProductSoldOut(product.stock) || availSizes.length === 0;
 
   const quickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (soldOut) {
+      toast.error('Peça esgotada');
+      return;
+    }
+    const size = availSizes[0] ?? product.sizes[0] ?? 'M';
     add({
       productId: product.id,
       name: product.name,
       price: product.price,
       image: img1,
-      size: product.sizes[0] ?? 'M',
+      size,
       quantity: 1,
     });
     toast.success(`${product.name} adicionado à sacola`);
@@ -43,6 +51,13 @@ export default function ProductCard({ product, index = 0 }: Props) {
         data-cursor="hover"
       >
         <div className="relative aspect-[3/4] overflow-hidden">
+          {soldOut && (
+            <div className="absolute inset-0 z-[5] flex items-center justify-center bg-king-red/45 px-2 backdrop-blur-[2px]">
+              <span className="text-center font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-king-bone drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:text-xs">
+                Esgotado
+              </span>
+            </div>
+          )}
           <img
             src={img1}
             alt={product.name}
@@ -72,7 +87,8 @@ export default function ProductCard({ product, index = 0 }: Props) {
               type="button"
               aria-label="Adicionar ao carrinho"
               onClick={quickAdd}
-              className="flex h-11 w-11 shrink-0 items-center justify-center gap-2 bg-king-red/90 font-mono text-[10px] uppercase tracking-[0.3em] text-king-bone shadow-glow-red transition hover:bg-king-glow/95 md:h-auto md:flex-1 md:py-3"
+              disabled={soldOut}
+              className="flex h-11 w-11 shrink-0 items-center justify-center gap-2 bg-king-red/90 font-mono text-[10px] uppercase tracking-[0.3em] text-king-bone shadow-glow-red transition hover:bg-king-glow/95 disabled:cursor-not-allowed disabled:opacity-40 md:h-auto md:flex-1 md:py-3"
             >
               <HiOutlineShoppingCart className="text-lg md:text-base" />
               <span className="hidden md:inline">Add Rápido</span>

@@ -23,6 +23,7 @@ import {
   readSavedShipping,
   writeSavedShipping,
 } from '@/utils/savedCheckoutAddress';
+import { cartLinesFromStoreItems } from '@/utils/checkoutInventory';
 
 export default function Checkout() {
   const { items, subtotal, clear } = useCartStore();
@@ -77,6 +78,7 @@ export default function Checkout() {
   }, [user?.uid, user?.displayName]);
 
   const total = subtotal();
+  const inventoryLines = useMemo(() => cartLinesFromStoreItems(items), [items]);
   const shippingCost = selectedShipping?.price ?? 0;
   const discountAmount = coupon
     ? Math.round(total * coupon.discountPercent) / 100
@@ -379,6 +381,7 @@ export default function Checkout() {
                   total={final}
                   disabled={submitting}
                   onPaid={handlePaid}
+                  inventoryLines={inventoryLines}
                   metadata={{
                     userEmail: user?.email ?? '',
                     customer: shipping.fullName,

@@ -23,6 +23,8 @@ function docToBackStamp(d: FirestoreStampDoc): Stamp | null {
     category: d.coleção.trim() || 'Catálogo online',
     src: d.imageUrl,
     file: d.id,
+    stock: d.stock,
+    stockInitial: d.stockInitial,
   };
 }
 
@@ -32,6 +34,8 @@ function docToFrontStamp(d: FirestoreStampDoc): FrontLogoStamp | null {
     id: firebaseStampId(d.id),
     name: d.name,
     src: d.imageUrl,
+    stock: d.stock,
+    stockInitial: d.stockInitial,
   };
 }
 
