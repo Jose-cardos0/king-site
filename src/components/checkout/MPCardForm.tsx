@@ -77,8 +77,8 @@ export default function MPCardForm(props: Props) {
           form: {
             id: FORM_ID,
             cardNumber: { id: FIELD_IDS.cardNumber, placeholder: '0000 0000 0000 0000' },
-            expirationDate: { id: FIELD_IDS.expirationDate, placeholder: 'MM/AA' },
-            securityCode: { id: FIELD_IDS.securityCode, placeholder: 'CVV' },
+            expirationDate: { id: FIELD_IDS.expirationDate, placeholder: '00/00' },
+            securityCode: { id: FIELD_IDS.securityCode, placeholder: '000' },
             cardholderName: { id: FIELD_IDS.cardholderName, placeholder: 'NOME COMO NO CARTÃO' },
             issuer: { id: FIELD_IDS.issuer, placeholder: 'Banco emissor' },
             installments: { id: FIELD_IDS.installments, placeholder: 'Parcelas' },
@@ -323,7 +323,7 @@ export default function MPCardForm(props: Props) {
                 <input
                   id={FIELD_IDS.cardNumber}
                   inputMode="numeric"
-                  className="mt-1 w-full bg-transparent font-mono text-xl tracking-[0.18em] text-king-fg placeholder-king-silver/40 outline-none focus:placeholder-king-silver/20 sm:text-2xl"
+                  className="mt-1 w-full border-b border-white/15 bg-transparent pb-1 font-mono text-xl tracking-[0.18em] text-king-fg placeholder-king-silver/40 outline-none transition focus:border-white/40 focus:placeholder-king-silver/20 sm:text-2xl"
                 />
               </div>
 
@@ -333,7 +333,7 @@ export default function MPCardForm(props: Props) {
                   <input
                     id={FIELD_IDS.cardholderName}
                     autoCapitalize="characters"
-                    className="mt-1 w-full truncate bg-transparent font-mono text-sm uppercase tracking-[0.18em] text-king-fg placeholder-king-silver/40 outline-none sm:text-base"
+                    className="mt-1 w-full truncate border-b border-white/15 bg-transparent pb-1 font-mono text-sm uppercase tracking-[0.18em] text-king-fg placeholder-king-silver/40 outline-none transition focus:border-white/40 sm:text-base"
                   />
                 </div>
                 <div>
@@ -341,7 +341,7 @@ export default function MPCardForm(props: Props) {
                   <input
                     id={FIELD_IDS.expirationDate}
                     inputMode="numeric"
-                    className="mt-1 w-[80px] bg-transparent font-mono text-sm tracking-[0.16em] text-king-fg placeholder-king-silver/40 outline-none sm:text-base"
+                    className="mt-1 w-[80px] border-b border-white/15 bg-transparent pb-1 font-mono text-sm tracking-[0.16em] text-king-fg placeholder-king-silver/40 outline-none transition focus:border-white/40 sm:text-base"
                   />
                 </div>
                 <div>
@@ -349,7 +349,7 @@ export default function MPCardForm(props: Props) {
                   <input
                     id={FIELD_IDS.securityCode}
                     inputMode="numeric"
-                    className="mt-1 w-[60px] bg-transparent font-mono text-sm tracking-[0.16em] text-king-fg placeholder-king-silver/40 outline-none sm:text-base"
+                    className="mt-1 w-[60px] border-b border-white/15 bg-transparent pb-1 font-mono text-sm tracking-[0.16em] text-king-fg placeholder-king-silver/40 outline-none transition focus:border-white/40 sm:text-base"
                   />
                 </div>
               </div>
