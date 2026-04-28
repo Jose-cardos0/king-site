@@ -343,20 +343,7 @@ function InnerForm({
           PI: {paymentIntentId.slice(-6)}
         </span>
       </div>
-      <p
-        className={cn(
-          'font-serif text-[11px] italic leading-relaxed sm:text-xs',
-          theme === 'light' ? 'text-king-fg/55' : 'text-king-silver/50'
-        )}
-      >
-        Parcelas: o pagamento usa os métodos ativos na tua conta Stripe (modo dinâmico). Confirma
-        em Definições → Métodos de pagamento que o cartão está ligado e que a conta suporta
-        parcelamento no Brasil. Cartão de teste com BIN BR:{' '}
-        <span className="whitespace-nowrap font-mono not-italic tracking-tight text-king-silver/70">
-          4000&nbsp;0007&nbsp;6000&nbsp;0002
-        </span>
-        .
-      </p>
+   
 
       <div className="flex justify-end">
         <GlowButton

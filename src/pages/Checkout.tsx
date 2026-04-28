@@ -379,9 +379,7 @@ export default function Checkout() {
                 <h3 className="heading-display text-xl text-king-fg">
                   Forma de pagamento
                 </h3>
-                <p className="mb-6 mt-1 font-serif text-sm italic text-king-silver/65">
-                  Cobrança em real (BRL), métodos para compradores no Brasil.
-                </p>
+              
 
                 <StripePaymentForm
                   subtotal={total}
