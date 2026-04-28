@@ -17,12 +17,16 @@ export default function PaymentCardShell({ children }: Props) {
   const nu = siteTheme === 'light';
 
   return (
-    <div className="relative mx-auto w-full max-w-xl max-sm:max-w-none sm:px-1 sm:pt-5 sm:pb-1">
+    <div className="relative mx-auto w-full max-w-xl max-sm:max-w-none sm:px-1 sm:pt-6 sm:pb-1">
+      {/*
+        Espaço extra no topo: o verso absoluto + rotação (5°) se projetava acima e cobria
+        títulos de secção irmãos. padding-top e top maiores alinham tudo com o fluxo.
+      */}
       {/* Verso decorativo — só a partir de sm */}
       <div
         className={cn(
           'absolute z-0 hidden rounded-2xl shadow-lg sm:block',
-          'left-4 right-0 top-1 h-[min(200px,42vw)] max-h-[220px] rotate-[5deg]',
+          'left-4 right-0 top-6 h-[min(200px,42vw)] max-h-[220px] rotate-[5deg] sm:top-10',
           nu
             ? 'bg-gradient-to-br from-[#9b4dff] via-[#7a32df] to-[#4a0a72] ring-1 ring-white/25'
             : 'bg-gradient-to-br from-violet-600 via-purple-700 to-indigo-900 ring-1 ring-white/10'
