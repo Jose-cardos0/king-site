@@ -35,6 +35,8 @@ export default function Checkout() {
   const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card');
+  const [pixOrderId, setPixOrderId] = useState<string | null>(null);
+  const [pixCreating, setPixCreating] = useState(false);
   const [post, setPost] = useState<{
     orderId: string;
     total: number;
@@ -211,12 +213,30 @@ export default function Checkout() {
     }
   };
 
-  const handlePixConfirm = async () => {
+  /** Quando o webhook MP marca o pedido como pago, finalizamos a UX (cart, modal, cupom). */
+  const handlePixPaid = async () => {
+    if (!pixOrderId || !selectedShipping) return;
+    if (coupon) {
+      void incrementCouponUsage(coupon.id);
+    }
+    toast.success('Pagamento confirmado!');
+    clear();
+    setPost({
+      orderId: pixOrderId,
+      total: final,
+      shippingName: selectedShipping.name,
+    });
+    setPixOrderId(null);
+  };
+
+  /** Cria o pedido no Firestore com paymentStatus 'pending' antes de gerar o QR PIX. */
+  const ensurePixOrder = async (): Promise<string | null> => {
+    if (pixOrderId) return pixOrderId;
     if (!user || !selectedShipping) {
       toast.error('Faltam dados pra finalizar');
-      return;
+      return null;
     }
-    setSubmitting(true);
+    setPixCreating(true);
     try {
       const { shippingService, orderCoupon, items: orderItems } = buildBaseOrder();
       const orderId = await createOrder({
@@ -235,23 +255,14 @@ export default function Checkout() {
         paymentIntentId: null,
         paymentStatus: 'pending',
       });
-
-      if (orderCoupon) {
-        void incrementCouponUsage(orderCoupon.id);
-      }
-
-      toast.success('Pedido registrado. Confirmaremos o PIX em poucos minutos.');
-      clear();
-      setPost({
-        orderId,
-        total: final,
-        shippingName: selectedShipping.name,
-      });
+      setPixOrderId(orderId);
+      return orderId;
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao salvar pedido. Tente novamente.');
+      toast.error('Erro ao registrar pedido. Tente novamente.');
+      return null;
     } finally {
-      setSubmitting(false);
+      setPixCreating(false);
     }
   };
 
@@ -440,7 +451,12 @@ export default function Checkout() {
                     <button
                       key={m}
                       type="button"
-                      onClick={() => setPaymentMethod(m)}
+                      onClick={() => {
+                        setPaymentMethod(m);
+                        if (m === 'pix') {
+                          void ensurePixOrder();
+                        }
+                      }}
                       className={cn(
                         'flex-1 border px-4 py-3 font-mono text-[11px] uppercase tracking-[0.3em] transition',
                         paymentMethod === m
@@ -471,12 +487,21 @@ export default function Checkout() {
                         coupon: coupon?.code ?? '',
                       }}
                     />
+                  ) : pixCreating && !pixOrderId ? (
+                    <div className="flex flex-col items-center gap-3 py-12">
+                      <div className="spinner-crown" />
+                      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver">
+                        Registrando pedido…
+                      </p>
+                    </div>
                   ) : (
                     <PixPaymentForm
+                      orderId={pixOrderId}
                       total={final}
                       description={`Pedido KING ${shipping.fullName}`.slice(0, 50)}
-                      disabled={submitting}
-                      onConfirm={handlePixConfirm}
+                      payerFirstName={shipping.fullName.split(' ')[0]}
+                      payerLastName={shipping.fullName.split(' ').slice(1).join(' ')}
+                      onPaid={handlePixPaid}
                     />
                   )}
                 </div>

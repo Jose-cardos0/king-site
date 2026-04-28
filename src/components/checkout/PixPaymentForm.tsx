@@ -1,54 +1,115 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { HiOutlineClipboardCopy, HiOutlineCheck } from 'react-icons/hi';
 import { QRCodeSVG } from 'qrcode.react';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { cn } from '@/utils/cn';
-import GlowButton from '@/components/ui/GlowButton';
 import { formatBRL } from '@/utils/format';
-import { getPixSettings, type PixSettings } from '@/services/settings.service';
-import { buildPixBRCode } from '@/services/pix';
+import { auth, db } from '@/services/firebase';
 
-interface Props {
-  total: number;
-  description?: string;
-  disabled?: boolean;
-  /** Chamado quando o cliente confirma "já paguei" — cria o pedido com paymentStatus 'pending'. */
-  onConfirm: () => void | Promise<void>;
+interface PixCreateResponse {
+  id: number;
+  qrCode: string;
+  qrCodeBase64?: string;
+  status?: string;
+  ticketUrl?: string;
 }
 
-export default function PixPaymentForm({ total, description, disabled, onConfirm }: Props) {
-  const [settings, setSettings] = useState<PixSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+interface Props {
+  /** Pedido já criado no Firestore com paymentStatus 'pending'. */
+  orderId: string | null;
+  total: number;
+  description?: string;
+  payerFirstName?: string;
+  payerLastName?: string;
+  payerCpf?: string;
+  /** Disparado quando o webhook MP confirma o pagamento. */
+  onPaid: () => void;
+}
 
+type Phase = 'idle' | 'creating' | 'awaiting' | 'paid' | 'error';
+
+export default function PixPaymentForm({
+  orderId,
+  total,
+  description,
+  payerFirstName,
+  payerLastName,
+  payerCpf,
+  onPaid,
+}: Props) {
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [pix, setPix] = useState<PixCreateResponse | null>(null);
+  const [copied, setCopied] = useState(false);
+  const onPaidRef = useRef(onPaid);
+  onPaidRef.current = onPaid;
+
+  // 1) Cria o pagamento PIX no MP via /api/pix/create.
   useEffect(() => {
+    if (!orderId) return;
+    let cancelled = false;
     (async () => {
-      setLoading(true);
+      setPhase('creating');
+      setErrorMsg(null);
       try {
-        const s = await getPixSettings();
-        setSettings(s);
-      } finally {
-        setLoading(false);
+        const u = auth.currentUser;
+        if (!u) throw new Error('Sessão expirada — entre novamente.');
+        const idToken = await u.getIdToken();
+        const res = await fetch('/api/pix/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            orderId,
+            amount: Number(total.toFixed(2)),
+            description,
+            payerFirstName,
+            payerLastName,
+            payerCpf,
+          }),
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+        const data = (await res.json()) as PixCreateResponse;
+        if (cancelled) return;
+        if (!data.qrCode) throw new Error('Mercado Pago não retornou QR Code.');
+        setPix(data);
+        setPhase('awaiting');
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : 'Erro desconhecido';
+        setErrorMsg(msg);
+        setPhase('error');
       }
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, total, description, payerFirstName, payerLastName, payerCpf]);
 
-  const code = useMemo(() => {
-    if (!settings || !settings.enabled || !settings.key.trim()) return '';
-    try {
-      return buildPixBRCode({
-        key: settings.key.trim(),
-        merchantName: settings.merchantName,
-        merchantCity: settings.merchantCity,
-        amount: total,
-        description,
-      });
-    } catch {
-      return '';
-    }
-  }, [settings, total, description]);
+  // 2) Ouve a doc do pedido no Firestore — webhook atualiza pra paid.
+  useEffect(() => {
+    if (!orderId) return;
+    if (phase !== 'awaiting' && phase !== 'creating') return;
+    const unsub = onSnapshot(doc(db, 'orders', orderId), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data() as Record<string, unknown>;
+      const ps = data.paymentStatus;
+      if (ps === 'paid') {
+        setPhase('paid');
+        onPaidRef.current();
+      }
+    });
+    return () => unsub();
+  }, [orderId, phase]);
+
+  const code = pix?.qrCode ?? '';
 
   const onCopy = async () => {
     if (!code) return;
@@ -62,38 +123,42 @@ export default function PixPaymentForm({ total, description, disabled, onConfirm
     }
   };
 
-  const handleConfirm = async () => {
-    setSubmitting(true);
-    try {
-      await onConfirm();
-    } finally {
-      setSubmitting(false);
+  const stateBlock = useMemo(() => {
+    if (phase === 'creating') {
+      return (
+        <div className="flex flex-col items-center gap-3 py-12">
+          <div className="spinner-crown" />
+          <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver">
+            Gerando QR Code seguro…
+          </p>
+        </div>
+      );
     }
-  };
+    if (phase === 'error') {
+      return (
+        <div className="rounded-md border border-red-500/40 bg-red-500/[0.06] p-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-red-300">
+            Erro ao gerar PIX
+          </p>
+          <p className="mt-2 font-serif text-sm italic text-red-200">
+            {errorMsg ?? 'Tente novamente em instantes.'}
+          </p>
+        </div>
+      );
+    }
+    if (phase === 'paid') {
+      return (
+        <div className="flex flex-col items-center gap-3 py-12">
+          <HiOutlineCheck className="text-5xl text-emerald-400" />
+          <p className="heading-display text-2xl text-king-fg">Pagamento confirmado!</p>
+          <p className="font-serif italic text-king-silver/80">Finalizando seu pedido…</p>
+        </div>
+      );
+    }
+    return null;
+  }, [phase, errorMsg]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-10">
-        <div className="spinner-crown" />
-      </div>
-    );
-  }
-
-  if (!settings?.enabled || !settings.key.trim()) {
-    return (
-      <div className="rounded-md border border-amber-500/40 bg-amber-500/[0.06] p-5 font-serif italic text-sm text-amber-200">
-        PIX ainda não configurado. Volte e escolha cartão, ou peça pro admin habilitar PIX no painel.
-      </div>
-    );
-  }
-
-  if (!code) {
-    return (
-      <div className="rounded-md border border-red-500/40 bg-red-500/[0.06] p-5 font-serif italic text-sm text-red-200">
-        Não foi possível gerar o QR PIX. Verifique a chave configurada no admin.
-      </div>
-    );
-  }
+  if (stateBlock) return stateBlock;
 
   return (
     <motion.div
@@ -137,19 +202,26 @@ export default function PixPaymentForm({ total, description, disabled, onConfirm
 
         <ul className="flex flex-col gap-1.5 font-serif text-sm italic text-king-silver/85">
           <li>1. Abra o app do seu banco e escolha PIX.</li>
-          <li>2. Use ler QR code OU cole o código acima em "Pix copia e cola".</li>
-          <li>3. Confirme o pagamento de <strong className="not-italic font-mono">{formatBRL(total)}</strong>.</li>
-          <li>4. Volte aqui e clique em "Já paguei" pra finalizar o pedido.</li>
+          <li>2. Escaneie o QR ou cole o "Pix copia e cola".</li>
+          <li>
+            3. Confirme o pagamento de{' '}
+            <strong className="not-italic font-mono">{formatBRL(total)}</strong>.
+          </li>
+          <li>
+            4. <strong className="not-italic">Pronto!</strong> Identificamos automaticamente quando
+            cair na conta — você não precisa clicar em nada.
+          </li>
         </ul>
 
-        <div className="rounded-md border border-king-red/25 bg-king-red/[0.04] p-3 font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver">
-          Após confirmar, seu pedido entra como <span className="text-king-red">pendente de pagamento</span>.
-          A KING confere o recebimento em poucos minutos e libera a produção.
+        <div className="flex items-center gap-3 rounded-md border border-king-red/30 bg-king-red/[0.05] p-3">
+          <span className="relative flex h-3 w-3 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-king-red/60" />
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-king-red" />
+          </span>
+          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver">
+            Aguardando pagamento — esta tela atualiza sozinha
+          </p>
         </div>
-
-        <GlowButton onClick={handleConfirm} disabled={disabled || submitting}>
-          {submitting ? 'Registrando…' : 'Já paguei — finalizar pedido'}
-        </GlowButton>
       </div>
     </motion.div>
   );

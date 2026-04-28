@@ -2,6 +2,7 @@ import './env.js';
 import express from 'express';
 import cors from 'cors';
 import checkoutRouter from './routes/checkout.js';
+import pixRouter from './routes/pix.js';
 import { handleStripeWebhook } from './routes/stripeWebhook.js';
 import { getAdminFirestore } from './lib/firebaseAdmin.js';
 
@@ -39,11 +40,13 @@ app.get('/api/health', (_req, res) => {
     stripe: Boolean(process.env.STRIPE_SECRET_KEY),
     stripeWebhook: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
     superfrete: Boolean(process.env.SUPER_FRETE_API),
+    mercadopago: Boolean(process.env.MERCADO_PAGO_ACCESS_TOKEN),
     firestoreInventory: Boolean(getAdminFirestore()),
     time: new Date().toISOString(),
   });
 });
 
 app.use('/api/checkout', checkoutRouter);
+app.use('/api/pix', pixRouter);
 
 export default app;
