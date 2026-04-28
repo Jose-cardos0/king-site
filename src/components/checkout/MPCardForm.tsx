@@ -1,30 +1,40 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineLockClosed, HiOutlineShieldCheck } from 'react-icons/hi';
 import { Loader2 } from 'lucide-react';
 import GlowButton from '@/components/ui/GlowButton';
+import KingLogo from '@/components/ui/KingLogo';
 import { auth } from '@/services/firebase';
 import { getMercadoPago, type MpCardFormInstance } from '@/services/mp';
 import { formatBRL } from '@/utils/format';
 import { cn } from '@/utils/cn';
 
 interface Props {
-  /** Total final em BRL — passado pra API e ao SDK pra calcular parcelas. */
   amount: number;
-  /** Pedido já criado em Firestore (paymentStatus 'pending'). */
   orderId: string | null;
-  /** Iniciar criação do pedido (chamado quando o cliente entra na aba Cartão). */
   ensureOrder: () => Promise<string | null>;
   payerCpf?: string;
   payerFirstName?: string;
   payerLastName?: string;
-  /** Disparado quando o pagamento é aprovado pela MP. */
   onPaid: () => void;
   disabled?: boolean;
 }
 
 const FORM_ID = 'king-mp-card-form';
+const FIELD_IDS = {
+  cardNumber: 'mp-cardNumber',
+  expirationDate: 'mp-expirationDate',
+  securityCode: 'mp-securityCode',
+  cardholderName: 'mp-cardholderName',
+  issuer: 'mp-issuer',
+  installments: 'mp-installments',
+  identificationType: 'mp-identificationType',
+  identificationNumber: 'mp-identificationNumber',
+  cardholderEmail: 'mp-cardholderEmail',
+};
+
+const onlyDigits = (v: string) => (v || '').replace(/\D/g, '');
 
 export default function MPCardForm(props: Props) {
   const {
@@ -41,6 +51,7 @@ export default function MPCardForm(props: Props) {
   const [sdkReady, setSdkReady] = useState(false);
   const [sdkError, setSdkError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cardFilled, setCardFilled] = useState(false);
   const cardFormRef = useRef<MpCardFormInstance | null>(null);
   const onPaidRef = useRef(onPaid);
   onPaidRef.current = onPaid;
@@ -49,14 +60,10 @@ export default function MPCardForm(props: Props) {
   const payerRef = useRef({ payerCpf, payerFirstName, payerLastName });
   payerRef.current = { payerCpf, payerFirstName, payerLastName };
 
-  // Cria o pedido em background assim que o componente monta.
   useEffect(() => {
-    if (!orderId) {
-      void ensureOrderRef.current();
-    }
+    if (!orderId) void ensureOrderRef.current();
   }, [orderId]);
 
-  // Monta o cardForm do SDK MP.
   useEffect(() => {
     let cancelled = false;
     let cardForm: MpCardFormInstance | null = null;
@@ -69,15 +76,18 @@ export default function MPCardForm(props: Props) {
           iframe: false,
           form: {
             id: FORM_ID,
-            cardNumber: { id: 'mp-cardNumber', placeholder: '0000 0000 0000 0000' },
-            expirationDate: { id: 'mp-expirationDate', placeholder: 'MM/AA' },
-            securityCode: { id: 'mp-securityCode', placeholder: 'CVV' },
-            cardholderName: { id: 'mp-cardholderName', placeholder: 'Nome impresso' },
-            issuer: { id: 'mp-issuer', placeholder: 'Banco emissor' },
-            installments: { id: 'mp-installments', placeholder: 'Parcelas' },
-            identificationType: { id: 'mp-identificationType', placeholder: 'Tipo' },
-            identificationNumber: { id: 'mp-identificationNumber', placeholder: '000.000.000-00' },
-            cardholderEmail: { id: 'mp-cardholderEmail', placeholder: 'email@exemplo.com' },
+            cardNumber: { id: FIELD_IDS.cardNumber, placeholder: '0000 0000 0000 0000' },
+            expirationDate: { id: FIELD_IDS.expirationDate, placeholder: 'MM/AA' },
+            securityCode: { id: FIELD_IDS.securityCode, placeholder: 'CVV' },
+            cardholderName: { id: FIELD_IDS.cardholderName, placeholder: 'NOME COMO NO CARTÃO' },
+            issuer: { id: FIELD_IDS.issuer, placeholder: 'Banco emissor' },
+            installments: { id: FIELD_IDS.installments, placeholder: 'Parcelas' },
+            identificationType: { id: FIELD_IDS.identificationType, placeholder: 'Tipo' },
+            identificationNumber: {
+              id: FIELD_IDS.identificationNumber,
+              placeholder: '000.000.000-00',
+            },
+            cardholderEmail: { id: FIELD_IDS.cardholderEmail, placeholder: 'email@exemplo.com' },
           },
           callbacks: {
             onFormMounted: (err: unknown) => {
@@ -157,7 +167,7 @@ export default function MPCardForm(props: Props) {
                 setSubmitting(false);
               }
             },
-            onFetching: (_resource: string) => {
+            onFetching: () => {
               // hooks de loading internos do SDK — ignorado
             },
           },
@@ -176,10 +186,45 @@ export default function MPCardForm(props: Props) {
         // ignore
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Atualiza valor (parcelas) caso amount mude.
+  // Detecta se os 4 campos do cartão (número, validade, cvv, nome) estão preenchidos.
+  useEffect(() => {
+    if (!sdkReady) return;
+    const ids = [
+      FIELD_IDS.cardNumber,
+      FIELD_IDS.expirationDate,
+      FIELD_IDS.securityCode,
+      FIELD_IDS.cardholderName,
+    ];
+    const inputs = ids
+      .map((id) => document.getElementById(id) as HTMLInputElement | null)
+      .filter(Boolean) as HTMLInputElement[];
+    if (inputs.length === 0) return;
+
+    const check = () => {
+      const num = onlyDigits(
+        (document.getElementById(FIELD_IDS.cardNumber) as HTMLInputElement | null)?.value ?? ''
+      );
+      const exp = onlyDigits(
+        (document.getElementById(FIELD_IDS.expirationDate) as HTMLInputElement | null)?.value ?? ''
+      );
+      const cvv = onlyDigits(
+        (document.getElementById(FIELD_IDS.securityCode) as HTMLInputElement | null)?.value ?? ''
+      );
+      const name = (
+        (document.getElementById(FIELD_IDS.cardholderName) as HTMLInputElement | null)?.value ?? ''
+      ).trim();
+      setCardFilled(num.length >= 14 && exp.length >= 4 && cvv.length >= 3 && name.length >= 3);
+    };
+    inputs.forEach((el) => el.addEventListener('input', check));
+    check();
+    return () => {
+      inputs.forEach((el) => el.removeEventListener('input', check));
+    };
+  }, [sdkReady]);
+
   useEffect(() => {
     cardFormRef.current?.update?.({ amount: amount.toFixed(2) });
   }, [amount]);
@@ -198,7 +243,7 @@ export default function MPCardForm(props: Props) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6"
     >
       {!sdkReady && (
         <div className="flex items-center justify-center gap-3 py-8 font-mono text-[10px] uppercase tracking-[0.3em] text-king-silver">
@@ -206,34 +251,98 @@ export default function MPCardForm(props: Props) {
         </div>
       )}
 
-      <div className={cn('grid grid-cols-1 gap-4', !sdkReady && 'hidden')}>
-        <KField label="Número do cartão" inputId="mp-cardNumber" />
-        <div className="grid grid-cols-2 gap-4">
-          <KField label="Validade (MM/AA)" inputId="mp-expirationDate" />
-          <KField label="CVV" inputId="mp-securityCode" />
+      <div className={cn(!sdkReady && 'hidden', 'flex flex-col gap-6')}>
+        {/* CARTÃO VISUAL — só os 4 campos principais */}
+        <div className="mx-auto w-full max-w-[440px]">
+          <div className="relative aspect-[1.586/1] overflow-hidden rounded-2xl border border-king-red/40 bg-gradient-to-br from-[#2a070e] via-[#15040a] to-[#0a0a0a] p-6 shadow-[0_24px_60px_rgba(220,20,60,0.25)]">
+            {/* fundo decorativo */}
+            <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-king-red/15 blur-3xl" />
+            <div className="pointer-events-none absolute -left-12 bottom-0 h-40 w-40 rounded-full bg-king-glow/10 blur-2xl" />
+
+            <div className="relative flex h-full flex-col">
+              <div className="flex items-start justify-between">
+                <div className="h-9 w-12 rounded-md bg-gradient-to-br from-amber-300 via-amber-500 to-amber-700 shadow-inner" />
+                <KingLogo variant="auto" className="h-5 w-auto opacity-90" />
+              </div>
+
+              <div className="mt-5">
+                <CardLabel>Número do cartão</CardLabel>
+                <input
+                  id={FIELD_IDS.cardNumber}
+                  inputMode="numeric"
+                  className="mt-1 w-full bg-transparent font-mono text-xl tracking-[0.18em] text-king-fg placeholder-king-silver/40 outline-none focus:placeholder-king-silver/20 sm:text-2xl"
+                />
+              </div>
+
+              <div className="mt-auto grid grid-cols-[1fr_auto_auto] gap-4 pt-4">
+                <div className="min-w-0">
+                  <CardLabel>Nome impresso</CardLabel>
+                  <input
+                    id={FIELD_IDS.cardholderName}
+                    autoCapitalize="characters"
+                    className="mt-1 w-full truncate bg-transparent font-mono text-sm uppercase tracking-[0.18em] text-king-fg placeholder-king-silver/40 outline-none sm:text-base"
+                  />
+                </div>
+                <div>
+                  <CardLabel>Validade</CardLabel>
+                  <input
+                    id={FIELD_IDS.expirationDate}
+                    inputMode="numeric"
+                    className="mt-1 w-[80px] bg-transparent font-mono text-sm tracking-[0.16em] text-king-fg placeholder-king-silver/40 outline-none sm:text-base"
+                  />
+                </div>
+                <div>
+                  <CardLabel>CVV</CardLabel>
+                  <input
+                    id={FIELD_IDS.securityCode}
+                    inputMode="numeric"
+                    className="mt-1 w-[60px] bg-transparent font-mono text-sm tracking-[0.16em] text-king-fg placeholder-king-silver/40 outline-none sm:text-base"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <KField label="Nome impresso no cartão" inputId="mp-cardholderName" />
 
-        <div className="grid grid-cols-2 gap-4">
-          <KSelect label="Banco emissor" inputId="mp-issuer" />
-          <KSelect label="Parcelas" inputId="mp-installments" />
-        </div>
+        {/* CAMPOS COMPLEMENTARES — aparecem só após preencher o cartão */}
+        <AnimatePresence initial={false}>
+          {cardFilled && (
+            <motion.div
+              key="extras"
+              initial={{ opacity: 0, y: 10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: 10, height: 0 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <KSelect label="Banco emissor" inputId={FIELD_IDS.issuer} />
+                  <KSelect label="Parcelas" inputId={FIELD_IDS.installments} />
+                </div>
+                <div className="grid grid-cols-[120px_1fr] gap-4">
+                  <KSelect label="Tipo doc." inputId={FIELD_IDS.identificationType} />
+                  <KField label="CPF do titular" inputId={FIELD_IDS.identificationNumber} />
+                </div>
+                <KField
+                  label="E-mail"
+                  inputId={FIELD_IDS.cardholderEmail}
+                  inputType="email"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="grid grid-cols-[120px_1fr] gap-4">
-          <KSelect label="Tipo doc." inputId="mp-identificationType" />
-          <KField label="CPF do titular" inputId="mp-identificationNumber" />
-        </div>
-
-        <KField label="E-mail" inputId="mp-cardholderEmail" inputType="email" />
-
-        <div className="mt-2 flex items-center gap-3 rounded-md border border-white/10 bg-king-black/30 px-4 py-3 text-king-silver">
+        {/* Sempre visíveis: aviso + botão (botão só ativo após preencher) */}
+        <div className="flex items-center gap-3 rounded-md border border-white/10 bg-king-black/30 px-4 py-3 text-king-silver">
           <HiOutlineLockClosed className="h-4 w-4 text-king-red" />
           <span className="font-mono text-[10px] uppercase tracking-[0.25em]">
             Dados criptografados pelo SDK do Mercado Pago — nunca chegam ao nosso servidor.
           </span>
         </div>
 
-        <GlowButton type="submit" disabled={disabled || submitting}>
+        <GlowButton type="submit" disabled={disabled || submitting || !cardFilled}>
           {submitting ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Processando…
@@ -244,8 +353,22 @@ export default function MPCardForm(props: Props) {
             </>
           )}
         </GlowButton>
+
+        {!cardFilled && (
+          <p className="text-center font-mono text-[10px] uppercase tracking-[0.25em] text-king-silver/60">
+            Preencha os dados do cartão pra continuar
+          </p>
+        )}
       </div>
     </motion.form>
+  );
+}
+
+function CardLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block font-mono text-[8px] uppercase tracking-[0.32em] text-king-silver/70 sm:text-[9px]">
+      {children}
+    </span>
   );
 }
 
@@ -263,11 +386,7 @@ function KField({
       <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-king-silver">
         {label}
       </span>
-      <input
-        id={inputId}
-        type={inputType}
-        className="input-king-panel font-mono"
-      />
+      <input id={inputId} type={inputType} className="input-king-panel font-mono" />
     </label>
   );
 }
