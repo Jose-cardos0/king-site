@@ -15,6 +15,7 @@ import {
 import { cn } from '@/utils/cn';
 import ShippingQuoteBox from '@/components/checkout/ShippingQuoteBox';
 import StripePaymentForm from '@/components/checkout/StripePaymentForm';
+import PixPaymentForm from '@/components/checkout/PixPaymentForm';
 import PostCheckoutModal from '@/components/checkout/PostCheckoutModal';
 import CouponField, { type AppliedCoupon } from '@/components/checkout/CouponField';
 import type { ShippingOption } from '@/services/checkout.api';
@@ -33,6 +34,7 @@ export default function Checkout() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'pix'>('card');
   const [post, setPost] = useState<{
     orderId: string;
     total: number;
@@ -135,39 +137,48 @@ export default function Checkout() {
     setStep(2);
   };
 
+  const buildBaseOrder = () => {
+    if (!selectedShipping) throw new Error('Sem frete selecionado');
+    const shippingService: ShippingService = {
+      id: selectedShipping.id,
+      name: selectedShipping.name,
+      carrier: selectedShipping.carrier,
+      deliveryDays: selectedShipping.deliveryDays,
+      free: selectedShipping.free ?? false,
+    };
+    const orderCoupon = coupon
+      ? {
+          id: coupon.id,
+          code: coupon.code,
+          discountPercent: coupon.discountPercent,
+          discountAmount,
+        }
+      : null;
+    return {
+      shippingService,
+      orderCoupon,
+      items: items.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        price: i.price,
+        image: i.image,
+        size: i.size,
+        quantity: i.quantity,
+        stamp: i.stamp ?? null,
+        stampFront: i.stampFront ?? null,
+      })),
+    };
+  };
+
   const handlePaid = async (paymentIntentId: string) => {
     if (!user || !selectedShipping) return;
     setSubmitting(true);
     try {
-      const shippingService: ShippingService = {
-        id: selectedShipping.id,
-        name: selectedShipping.name,
-        carrier: selectedShipping.carrier,
-        deliveryDays: selectedShipping.deliveryDays,
-        free: selectedShipping.free ?? false,
-      };
-      const orderCoupon = coupon
-        ? {
-            id: coupon.id,
-            code: coupon.code,
-            discountPercent: coupon.discountPercent,
-            discountAmount,
-          }
-        : null;
-
+      const { shippingService, orderCoupon, items: orderItems } = buildBaseOrder();
       const orderId = await createOrder({
         userId: user.uid,
         userEmail: user.email ?? '',
-        items: items.map((i) => ({
-          productId: i.productId,
-          name: i.name,
-          price: i.price,
-          image: i.image,
-          size: i.size,
-          quantity: i.quantity,
-          stamp: i.stamp ?? null,
-          stampFront: i.stampFront ?? null,
-        })),
+        items: orderItems,
         subtotal: total,
         shippingCost,
         discount: discountAmount,
@@ -195,6 +206,50 @@ export default function Checkout() {
     } catch (err) {
       console.error(err);
       toast.error('Pagamento aprovado mas não salvamos o pedido. Contate a KING.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePixConfirm = async () => {
+    if (!user || !selectedShipping) {
+      toast.error('Faltam dados pra finalizar');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { shippingService, orderCoupon, items: orderItems } = buildBaseOrder();
+      const orderId = await createOrder({
+        userId: user.uid,
+        userEmail: user.email ?? '',
+        items: orderItems,
+        subtotal: total,
+        shippingCost,
+        discount: discountAmount,
+        coupon: orderCoupon,
+        total: final,
+        status: 'pendente',
+        shipping,
+        shippingService,
+        paymentMethod: 'pix',
+        paymentIntentId: null,
+        paymentStatus: 'pending',
+      });
+
+      if (orderCoupon) {
+        void incrementCouponUsage(orderCoupon.id);
+      }
+
+      toast.success('Pedido registrado. Confirmaremos o PIX em poucos minutos.');
+      clear();
+      setPost({
+        orderId,
+        total: final,
+        shippingName: selectedShipping.name,
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar pedido. Tente novamente.');
     } finally {
       setSubmitting(false);
     }
@@ -379,24 +434,51 @@ export default function Checkout() {
                 <h3 className="heading-display text-xl text-king-fg">
                   Forma de pagamento
                 </h3>
-              
-                <div className="mt-8 sm:mt-10">
-                  <StripePaymentForm
-                    subtotal={total}
-                    shippingCost={shippingCost}
-                    discount={discountAmount}
-                    total={final}
-                    disabled={submitting}
-                    onPaid={handlePaid}
-                    inventoryLines={inventoryLines}
-                    metadata={{
-                      userEmail: user?.email ?? '',
-                      customer: shipping.fullName,
-                      shipping_service: selectedShipping?.name ?? '',
-                      shipping_zip: shipping.zip,
-                      coupon: coupon?.code ?? '',
-                    }}
-                  />
+
+                <div className="mt-5 flex gap-2">
+                  {(['card', 'pix'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPaymentMethod(m)}
+                      className={cn(
+                        'flex-1 border px-4 py-3 font-mono text-[11px] uppercase tracking-[0.3em] transition',
+                        paymentMethod === m
+                          ? 'border-king-red bg-king-red text-king-bone shadow-glow-red'
+                          : 'border-white/10 text-king-silver hover:border-king-red'
+                      )}
+                    >
+                      {m === 'card' ? 'Cartão' : 'PIX'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-6">
+                  {paymentMethod === 'card' ? (
+                    <StripePaymentForm
+                      subtotal={total}
+                      shippingCost={shippingCost}
+                      discount={discountAmount}
+                      total={final}
+                      disabled={submitting}
+                      onPaid={handlePaid}
+                      inventoryLines={inventoryLines}
+                      metadata={{
+                        userEmail: user?.email ?? '',
+                        customer: shipping.fullName,
+                        shipping_service: selectedShipping?.name ?? '',
+                        shipping_zip: shipping.zip,
+                        coupon: coupon?.code ?? '',
+                      }}
+                    />
+                  ) : (
+                    <PixPaymentForm
+                      total={final}
+                      description={`Pedido KING ${shipping.fullName}`.slice(0, 50)}
+                      disabled={submitting}
+                      onConfirm={handlePixConfirm}
+                    />
+                  )}
                 </div>
 
                 <div className="mt-8 flex justify-between">

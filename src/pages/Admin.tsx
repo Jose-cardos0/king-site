@@ -34,6 +34,7 @@ import StampsTab from '@/components/admin/StampsTab';
 import CouponsTab from '@/components/admin/CouponsTab';
 import LeadsTab from '@/components/admin/LeadsTab';
 import CollectionsTab from '@/components/admin/CollectionsTab';
+import SettingsTab from '@/components/admin/SettingsTab';
 import AdminPaginationBar, { ADMIN_PAGE_SIZE } from '@/components/admin/AdminPaginationBar';
 import OrderCard from '@/components/admin/OrderCard';
 import AdminKPIs from '@/components/admin/AdminKPIs';
@@ -70,7 +71,7 @@ import {
 
 const ALL_SIZES: ProductSize[] = ['P', 'M', 'G', 'GG', 'XGG'];
 
-type AdminTab = 'products' | 'orders' | 'kpis' | 'stamps' | 'coupons' | 'leads' | 'collections';
+type AdminTab = 'products' | 'orders' | 'kpis' | 'stamps' | 'coupons' | 'leads' | 'collections' | 'settings';
 
 export default function Admin() {
   const [tab, setTab] = useState<AdminTab>('products');
@@ -221,7 +222,7 @@ export default function Admin() {
         </motion.div>
 
         <div className="mb-8 flex flex-wrap gap-2">
-          {(['products', 'orders', 'kpis', 'coupons', 'stamps', 'leads', 'collections'] as const).map((t) => (
+          {(['products', 'orders', 'kpis', 'coupons', 'stamps', 'leads', 'collections', 'settings'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -244,7 +245,9 @@ export default function Admin() {
                         ? 'Estampas'
                         : t === 'leads'
                           ? 'Leads'
-                          : 'Coleção'}
+                          : t === 'collections'
+                            ? 'Coleção'
+                            : 'Configurações'}
             </button>
           ))}
         </div>
@@ -257,6 +260,8 @@ export default function Admin() {
           <LeadsTab />
         ) : tab === 'collections' ? (
           <CollectionsTab />
+        ) : tab === 'settings' ? (
+          <SettingsTab />
         ) : tab === 'kpis' ? (
           loading ? (
             <div className="flex justify-center py-20">

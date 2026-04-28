@@ -139,6 +139,16 @@ service cloud.firestore {
     }
 
     // =========================================================
+    // SETTINGS — configurações do site (PIX, etc.)
+    // Leitura pública (checkout precisa montar QR PIX);
+    // escrita só admin.
+    // =========================================================
+    match /settings/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // =========================================================
     // LEADS — qualquer visitante cria (form de WhatsApp na home).
     // Admin lista/remove.
     // =========================================================
