@@ -379,9 +379,7 @@ export default function Checkout() {
                 <h3 className="heading-display text-xl text-king-fg">
                   Forma de pagamento
                 </h3>
-                <p className="mt-1.5 font-serif text-sm italic text-king-silver/65">
-                  Cobrança em real (BRL) — cartão, Apple Pay e Google Pay quando elegíveis.
-                </p>
+              
                 <div className="mt-8 sm:mt-10">
                   <StripePaymentForm
                     subtotal={total}
